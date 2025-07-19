@@ -1,0 +1,164 @@
+{{- if .Values.rbac.create }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "shard-controller.manager.serviceAccountName" . }}
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "shard-controller.manager.labels" . | nindent 4 }}
+  {{- with .Values.serviceAccount.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "shard-controller.worker.serviceAccountName" . }}
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "shard-controller.worker.labels" . | nindent 4 }}
+  {{- with .Values.serviceAccount.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "shard-controller.fullname" . }}-manager
+  labels:
+    {{- include "shard-controller.manager.labels" . | nindent 4 }}
+rules:
+# Core API permissions
+- apiGroups: [""]
+  resources: ["pods", "services", "endpoints", "configmaps", "secrets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list", "watch"]
+
+# Apps API permissions
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+# Custom Resource permissions
+- apiGroups: ["shard.io"]
+  resources: ["shardconfigs", "shardinstances"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["shard.io"]
+  resources: ["shardconfigs/status", "shardinstances/status"]
+  verbs: ["get", "update", "patch"]
+
+# Coordination API for leader election
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+# Metrics and monitoring
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["pods", "nodes"]
+  verbs: ["get", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "shard-controller.fullname" . }}-worker
+  labels:
+    {{- include "shard-controller.worker.labels" . | nindent 4 }}
+rules:
+# Core API permissions (limited)
+- apiGroups: [""]
+  resources: ["pods", "configmaps"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+
+# Custom Resource permissions (limited)
+- apiGroups: ["shard.io"]
+  resources: ["shardconfigs", "shardinstances"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["shard.io"]
+  resources: ["shardinstances/status"]
+  verbs: ["get", "update", "patch"]
+
+# Metrics
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["pods"]
+  verbs: ["get"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "shard-controller.fullname" . }}-manager
+  labels:
+    {{- include "shard-controller.manager.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "shard-controller.fullname" . }}-manager
+subjects:
+- kind: ServiceAccount
+  name: {{ include "shard-controller.manager.serviceAccountName" . }}
+  namespace: {{ .Values.namespace.name }}
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "shard-controller.fullname" . }}-worker
+  labels:
+    {{- include "shard-controller.worker.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "shard-controller.fullname" . }}-worker
+subjects:
+- kind: ServiceAccount
+  name: {{ include "shard-controller.worker.serviceAccountName" . }}
+  namespace: {{ .Values.namespace.name }}
+
+---
+# Role for accessing namespace-specific resources
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "shard-controller.fullname" . }}-manager
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "shard-controller.manager.labels" . | nindent 4 }}
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "shard-controller.fullname" . }}-manager
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "shard-controller.manager.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "shard-controller.fullname" . }}-manager
+subjects:
+- kind: ServiceAccount
+  name: {{ include "shard-controller.manager.serviceAccountName" . }}
+  namespace: {{ .Values.namespace.name }}
+{{- end }}

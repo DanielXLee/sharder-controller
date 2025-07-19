@@ -1,0 +1,51 @@
+{{- if and .Values.monitoring.enabled .Values.monitoring.prometheus.enabled .Values.monitoring.prometheus.serviceMonitor.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "shard-controller.fullname" . }}-manager
+  namespace: {{ .Values.monitoring.prometheus.serviceMonitor.namespace | default .Values.namespace.name }}
+  labels:
+    {{- include "shard-controller.manager.labels" . | nindent 4 }}
+    {{- with .Values.monitoring.prometheus.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "shard-controller.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: manager
+  namespaceSelector:
+    matchNames:
+    - {{ .Values.namespace.name }}
+  endpoints:
+  - port: metrics
+    interval: {{ .Values.monitoring.prometheus.serviceMonitor.interval }}
+    scrapeTimeout: {{ .Values.monitoring.prometheus.serviceMonitor.scrapeTimeout }}
+    path: /metrics
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "shard-controller.fullname" . }}-worker
+  namespace: {{ .Values.monitoring.prometheus.serviceMonitor.namespace | default .Values.namespace.name }}
+  labels:
+    {{- include "shard-controller.worker.labels" . | nindent 4 }}
+    {{- with .Values.monitoring.prometheus.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "shard-controller.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: worker
+  namespaceSelector:
+    matchNames:
+    - {{ .Values.namespace.name }}
+  endpoints:
+  - port: metrics
+    interval: {{ .Values.monitoring.prometheus.serviceMonitor.interval }}
+    scrapeTimeout: {{ .Values.monitoring.prometheus.serviceMonitor.scrapeTimeout }}
+    path: /metrics
+{{- end }}

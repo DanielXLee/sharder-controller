@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: shard-manager-config
+  namespace: shard-system
+data:
+  config.yaml: |
+    manager:
+      leaderElection:
+        enabled: true
+        leaseDuration: 15s
+        renewDeadline: 10s
+        retryPeriod: 2s
+      healthCheck:
+        interval: 30s
+        timeout: 10s
+        failureThreshold: 3
+      scaling:
+        minShards: 1
+        maxShards: 10
+        scaleUpThreshold: 0.8
+        scaleDownThreshold: 0.3
+        cooldownPeriod: 300s
+      loadBalancing:
+        strategy: "consistent-hash"
+        rebalanceThreshold: 0.2
+    monitoring:
+      metricsPort: 8080
+      healthPort: 8081
+      logLevel: "info"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: shard-worker-config
+  namespace: shard-system
+data:
+  config.yaml: |
+    worker:
+      heartbeat:
+        interval: 10s
+        timeout: 5s
+      processing:
+        batchSize: 100
+        maxConcurrency: 10
+        timeout: 30s
+      migration:
+        timeout: 300s
+        retryAttempts: 3
+        retryDelay: 10s
+    monitoring:
+      metricsPort: 8080
+      healthPort: 8081
+      logLevel: "info"

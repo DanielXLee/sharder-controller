@@ -1,0 +1,65 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "shard-controller.fullname" . }}-manager-metrics
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "shard-controller.manager.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.manager.service.type }}
+  ports:
+  - name: metrics
+    port: {{ .Values.manager.service.metricsPort }}
+    targetPort: metrics
+    protocol: TCP
+  - name: health
+    port: {{ .Values.manager.service.healthPort }}
+    targetPort: health
+    protocol: TCP
+  selector:
+    {{- include "shard-controller.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: manager
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "shard-controller.fullname" . }}-worker-metrics
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "shard-controller.worker.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.worker.service.type }}
+  ports:
+  - name: metrics
+    port: {{ .Values.worker.service.metricsPort }}
+    targetPort: metrics
+    protocol: TCP
+  - name: health
+    port: {{ .Values.worker.service.healthPort }}
+    targetPort: health
+    protocol: TCP
+  selector:
+    {{- include "shard-controller.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+
+---
+# Headless service for worker discovery
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "shard-controller.fullname" . }}-worker-headless
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "shard-controller.worker.labels" . | nindent 4 }}
+spec:
+  ports:
+  - name: metrics
+    port: {{ .Values.worker.service.metricsPort }}
+    targetPort: metrics
+    protocol: TCP
+  selector:
+    {{- include "shard-controller.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+  clusterIP: None

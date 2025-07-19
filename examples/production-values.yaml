@@ -1,0 +1,162 @@
+# Production Helm values for Shard Controller
+# This configuration is optimized for production workloads
+
+# Global settings
+global:
+  imageRegistry: "your-registry.com"
+  imagePullSecrets:
+    - name: registry-secret
+
+# Manager configuration for production
+manager:
+  image:
+    repository: shard-controller/manager
+    tag: "v1.0.0"
+    pullPolicy: IfNotPresent
+  
+  replicaCount: 1
+  
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  
+  config:
+    leaderElection:
+      enabled: true
+      leaseDuration: 15s
+      renewDeadline: 10s
+      retryPeriod: 2s
+    healthCheck:
+      interval: 20s
+      timeout: 10s
+      failureThreshold: 3
+    scaling:
+      minShards: 3
+      maxShards: 20
+      scaleUpThreshold: 0.75
+      scaleDownThreshold: 0.25
+      cooldownPeriod: 180s
+    loadBalancing:
+      strategy: "consistent-hash"
+      rebalanceThreshold: 0.15
+  
+  # Production-grade node placement
+  nodeSelector:
+    node-role.kubernetes.io/control-plane: ""
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: app.kubernetes.io/component
+              operator: In
+              values:
+              - manager
+          topologyKey: kubernetes.io/hostname
+
+# Worker configuration for production
+worker:
+  image:
+    repository: shard-controller/worker
+    tag: "v1.0.0"
+    pullPolicy: IfNotPresent
+  
+  replicaCount: 5
+  
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+  
+  config:
+    heartbeat:
+      interval: 10s
+      timeout: 5s
+    processing:
+      batchSize: 200
+      maxConcurrency: 20
+      timeout: 60s
+    migration:
+      timeout: 600s
+      retryAttempts: 5
+      retryDelay: 15s
+  
+  # Spread workers across nodes
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: app.kubernetes.io/component
+              operator: In
+              values:
+              - worker
+          topologyKey: kubernetes.io/hostname
+
+# RBAC configuration
+rbac:
+  create: true
+
+serviceAccount:
+  create: true
+  annotations:
+    # Add any required annotations for your environment
+    # eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT:role/shard-controller-role
+
+# Namespace configuration
+namespace:
+  create: true
+  name: shard-system
+
+# Monitoring and observability
+monitoring:
+  enabled: true
+  logLevel: info
+  
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      namespace: monitoring
+      interval: 15s
+      scrapeTimeout: 10s
+      labels:
+        prometheus: kube-prometheus
+  
+  grafana:
+    enabled: true
+    dashboard:
+      enabled: true
+
+# Security context for production
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 65534
+  fsGroup: 65534
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65534
+  fsGroup: 65534
+  seccompProfile:
+    type: RuntimeDefault

@@ -1,0 +1,153 @@
+# Default values for shard-controller
+# This is a YAML-formatted file.
+
+# Global settings
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+
+# Manager configuration
+manager:
+  image:
+    repository: shard-controller/manager
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  
+  replicaCount: 1
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  
+  config:
+    leaderElection:
+      enabled: true
+      leaseDuration: 15s
+      renewDeadline: 10s
+      retryPeriod: 2s
+    healthCheck:
+      interval: 30s
+      timeout: 10s
+      failureThreshold: 3
+    scaling:
+      minShards: 1
+      maxShards: 10
+      scaleUpThreshold: 0.8
+      scaleDownThreshold: 0.3
+      cooldownPeriod: 300s
+    loadBalancing:
+      strategy: "consistent-hash"
+      rebalanceThreshold: 0.2
+  
+  service:
+    type: ClusterIP
+    metricsPort: 8080
+    healthPort: 8081
+  
+  monitoring:
+    enabled: true
+    serviceMonitor:
+      enabled: false
+      interval: 30s
+      scrapeTimeout: 10s
+  
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Worker configuration
+worker:
+  image:
+    repository: shard-controller/worker
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  
+  replicaCount: 3
+  
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  
+  config:
+    heartbeat:
+      interval: 10s
+      timeout: 5s
+    processing:
+      batchSize: 100
+      maxConcurrency: 10
+      timeout: 30s
+    migration:
+      timeout: 300s
+      retryAttempts: 3
+      retryDelay: 10s
+  
+  service:
+    type: ClusterIP
+    metricsPort: 8080
+    healthPort: 8081
+  
+  monitoring:
+    enabled: true
+    serviceMonitor:
+      enabled: false
+      interval: 30s
+      scrapeTimeout: 10s
+  
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# RBAC configuration
+rbac:
+  create: true
+  
+serviceAccount:
+  create: true
+  annotations: {}
+
+# Namespace configuration
+namespace:
+  create: true
+  name: shard-system
+
+# Custom Resource Definitions
+crds:
+  install: true
+
+# Monitoring and observability
+monitoring:
+  enabled: true
+  logLevel: info
+  
+  prometheus:
+    enabled: false
+    serviceMonitor:
+      enabled: false
+      namespace: monitoring
+      interval: 30s
+      scrapeTimeout: 10s
+      labels: {}
+  
+  grafana:
+    enabled: false
+    dashboard:
+      enabled: false
+
+# Security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 65534
+  fsGroup: 65534
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65534
+  fsGroup: 65534

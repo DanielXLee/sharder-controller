@@ -1,0 +1,135 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: shardinstances.shard.io
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.9.2
+spec:
+  group: shard.io
+  names:
+    kind: ShardInstance
+    listKind: ShardInstanceList
+    plural: shardinstances
+    singular: shardinstance
+  scope: Namespaced
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        description: ShardInstance represents a single shard instance
+        type: object
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation of an object.'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this object represents.'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ShardInstanceSpec defines the desired state of ShardInstance
+            type: object
+            required:
+            - shardId
+            properties:
+              shardId:
+                description: Unique identifier for the shard
+                type: string
+                minLength: 1
+                maxLength: 63
+                pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+              hashRange:
+                description: Hash range for consistent hashing
+                type: object
+                properties:
+                  start:
+                    description: Start of hash range
+                    type: integer
+                    minimum: 0
+                    maximum: 4294967295
+                  end:
+                    description: End of hash range
+                    type: integer
+                    minimum: 0
+                    maximum: 4294967295
+                required:
+                - start
+                - end
+              resources:
+                description: List of assigned resources
+                type: array
+                items:
+                  type: string
+          status:
+            description: ShardInstanceStatus defines the observed state of ShardInstance
+            type: object
+            properties:
+              phase:
+                description: Current phase of the shard
+                type: string
+                enum:
+                - "Pending"
+                - "Running"
+                - "Draining"
+                - "Failed"
+                - "Terminated"
+                default: "Pending"
+              load:
+                description: Current load of the shard
+                type: number
+                minimum: 0
+              lastHeartbeat:
+                description: Last heartbeat timestamp
+                type: string
+                format: date-time
+              assignedResources:
+                description: Currently assigned resources
+                type: array
+                items:
+                  type: string
+              healthStatus:
+                description: Health status of the shard
+                type: object
+                properties:
+                  healthy:
+                    description: Whether the shard is healthy
+                    type: boolean
+                    default: true
+                  lastCheck:
+                    description: Last health check timestamp
+                    type: string
+                    format: date-time
+                  errorCount:
+                    description: Number of consecutive errors
+                    type: integer
+                    minimum: 0
+                    default: 0
+                  message:
+                    description: Health status message
+                    type: string
+                required:
+                - healthy
+                - lastCheck
+                - errorCount
+    additionalPrinterColumns:
+    - name: Shard ID
+      type: string
+      jsonPath: .spec.shardId
+    - name: Phase
+      type: string
+      jsonPath: .status.phase
+    - name: Load
+      type: number
+      jsonPath: .status.load
+    - name: Healthy
+      type: boolean
+      jsonPath: .status.healthStatus.healthy
+    - name: Resources
+      type: integer
+      jsonPath: .status.assignedResources[*]
+    - name: Age
+      type: date
+      jsonPath: .metadata.creationTimestamp

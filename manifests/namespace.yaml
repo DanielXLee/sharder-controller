@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: shard-system
+  labels:
+    name: shard-system
+    app.kubernetes.io/name: shard-controller
+    app.kubernetes.io/component: system

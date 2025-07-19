@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "shard-controller.fullname" . }}-manager
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "shard-controller.manager.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.manager.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "shard-controller.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: manager
+  template:
+    metadata:
+      labels:
+        {{- include "shard-controller.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: manager
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "shard-controller.manager.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: manager
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 10 }}
+        image: {{ include "shard-controller.manager.image" . }}
+        imagePullPolicy: {{ .Values.manager.image.pullPolicy }}
+        command:
+        - /manager
+        args:
+        - --config=/etc/config/config.yaml
+        - --metrics-addr=0.0.0.0:{{ .Values.manager.service.metricsPort }}
+        - --health-addr=0.0.0.0:{{ .Values.manager.service.healthPort }}
+        - --leader-elect={{ .Values.manager.config.leaderElection.enabled }}
+        ports:
+        - name: metrics
+          containerPort: {{ .Values.manager.service.metricsPort }}
+          protocol: TCP
+        - name: health
+          containerPort: {{ .Values.manager.service.healthPort }}
+          protocol: TCP
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        resources:
+          {{- toYaml .Values.manager.resources | nindent 10 }}
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: health
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: health
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        volumeMounts:
+        - name: config
+          mountPath: /etc/config
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: {{ include "shard-controller.fullname" . }}-manager-config
+      terminationGracePeriodSeconds: 30
+      {{- with .Values.manager.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.manager.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.manager.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

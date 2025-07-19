@@ -1,0 +1,162 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: shard-manager
+  namespace: shard-system
+  labels:
+    app: shard-manager
+    component: controller
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: shard-worker
+  namespace: shard-system
+  labels:
+    app: shard-worker
+    component: worker
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: shard-manager
+  labels:
+    app: shard-manager
+    component: controller
+rules:
+# Core API permissions
+- apiGroups: [""]
+  resources: ["pods", "services", "endpoints", "configmaps", "secrets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list", "watch"]
+
+# Apps API permissions
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+# Custom Resource permissions
+- apiGroups: ["shard.io"]
+  resources: ["shardconfigs", "shardinstances"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["shard.io"]
+  resources: ["shardconfigs/status", "shardinstances/status"]
+  verbs: ["get", "update", "patch"]
+
+# Coordination API for leader election
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+# Metrics and monitoring
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["pods", "nodes"]
+  verbs: ["get", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: shard-worker
+  labels:
+    app: shard-worker
+    component: worker
+rules:
+# Core API permissions (limited)
+- apiGroups: [""]
+  resources: ["pods", "configmaps"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+
+# Custom Resource permissions (limited)
+- apiGroups: ["shard.io"]
+  resources: ["shardconfigs", "shardinstances"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["shard.io"]
+  resources: ["shardinstances/status"]
+  verbs: ["get", "update", "patch"]
+
+# Metrics
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["pods"]
+  verbs: ["get"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: shard-manager
+  labels:
+    app: shard-manager
+    component: controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: shard-manager
+subjects:
+- kind: ServiceAccount
+  name: shard-manager
+  namespace: shard-system
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: shard-worker
+  labels:
+    app: shard-worker
+    component: worker
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: shard-worker
+subjects:
+- kind: ServiceAccount
+  name: shard-worker
+  namespace: shard-system
+
+---
+# Role for accessing namespace-specific resources
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: shard-system-manager
+  namespace: shard-system
+  labels:
+    app: shard-manager
+    component: controller
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: shard-system-manager
+  namespace: shard-system
+  labels:
+    app: shard-manager
+    component: controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: shard-system-manager
+subjects:
+- kind: ServiceAccount
+  name: shard-manager
+  namespace: shard-system

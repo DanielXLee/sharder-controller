@@ -1,0 +1,116 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: shardconfigs.shard.io
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.9.2
+spec:
+  group: shard.io
+  names:
+    kind: ShardConfig
+    listKind: ShardConfigList
+    plural: shardconfigs
+    singular: shardconfig
+  scope: Namespaced
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        description: ShardConfig defines the configuration for shard management
+        type: object
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation of an object.'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this object represents.'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ShardConfigSpec defines the desired state of ShardConfig
+            type: object
+            required:
+            - minShards
+            - maxShards
+            - scaleUpThreshold
+            - scaleDownThreshold
+            - healthCheckInterval
+            - loadBalanceStrategy
+            properties:
+              minShards:
+                description: Minimum number of shards
+                type: integer
+                minimum: 1
+                default: 1
+              maxShards:
+                description: Maximum number of shards
+                type: integer
+                minimum: 1
+                maximum: 100
+                default: 10
+              scaleUpThreshold:
+                description: Load threshold for scaling up
+                type: number
+                minimum: 0.1
+                maximum: 1.0
+                default: 0.8
+              scaleDownThreshold:
+                description: Load threshold for scaling down
+                type: number
+                minimum: 0.1
+                maximum: 1.0
+                default: 0.3
+              healthCheckInterval:
+                description: Interval for health checks
+                type: string
+                default: "30s"
+              loadBalanceStrategy:
+                description: Load balancing strategy
+                type: string
+                enum:
+                - "consistent-hash"
+                - "round-robin"
+                - "least-loaded"
+                default: "consistent-hash"
+              gracefulShutdownTimeout:
+                description: Timeout for graceful shutdown
+                type: string
+                default: "300s"
+          status:
+            description: ShardConfigStatus defines the observed state of ShardConfig
+            type: object
+            properties:
+              currentShards:
+                description: Current number of shards
+                type: integer
+                minimum: 0
+              healthyShards:
+                description: Number of healthy shards
+                type: integer
+                minimum: 0
+              totalLoad:
+                description: Total load across all shards
+                type: number
+                minimum: 0
+    additionalPrinterColumns:
+    - name: Min Shards
+      type: integer
+      jsonPath: .spec.minShards
+    - name: Max Shards
+      type: integer
+      jsonPath: .spec.maxShards
+    - name: Current Shards
+      type: integer
+      jsonPath: .status.currentShards
+    - name: Healthy Shards
+      type: integer
+      jsonPath: .status.healthyShards
+    - name: Total Load
+      type: number
+      jsonPath: .status.totalLoad
+    - name: Age
+      type: date
+      jsonPath: .metadata.creationTimestamp

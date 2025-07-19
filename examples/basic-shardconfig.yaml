@@ -1,0 +1,34 @@
+# Basic ShardConfig example
+apiVersion: shard.io/v1
+kind: ShardConfig
+metadata:
+  name: basic-shard-config
+  namespace: default
+  labels:
+    app: example-app
+    environment: development
+spec:
+  # Scaling configuration
+  minShards: 2
+  maxShards: 6
+  scaleUpThreshold: 0.7
+  scaleDownThreshold: 0.3
+  
+  # Health check settings
+  healthCheckInterval: "30s"
+  
+  # Load balancing strategy
+  loadBalanceStrategy: "consistent-hash"
+  
+  # Resource specifications for worker shards
+  resources:
+    requests:
+      cpu: "200m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+  
+  # Additional configuration
+  gracefulShutdownTimeout: "60s"
+  rebalanceThreshold: 0.2
