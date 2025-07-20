@@ -384,18 +384,52 @@ func (ws *WorkerShard) GetHashRange() *shardv1.HashRange {
 func (ws *WorkerShard) initializeShardInstance(ctx context.Context) error {
 	shard := &shardv1.ShardInstance{}
 	err := ws.client.Get(ctx, client.ObjectKey{Name: ws.shardId, Namespace: ws.config.Namespace}, shard)
+	
 	if err != nil {
-		return fmt.Errorf("failed to get shard instance: %w", err)
+		// If shard instance doesn't exist, create a basic one
+		ws.logger.Info("ShardInstance not found, creating a basic one", "shardId", ws.shardId)
+		
+		// Create a basic shard instance
+		shard = &shardv1.ShardInstance{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      ws.shardId,
+				Namespace: ws.config.Namespace,
+				Labels: map[string]string{
+					"app":       "shard-worker",
+					"component": "worker",
+					"shard-id":  ws.shardId,
+				},
+			},
+			Spec: shardv1.ShardInstanceSpec{
+				ShardID: ws.shardId,
+				HashRange: &shardv1.HashRange{
+					Start: 0,
+					End:   1000, // Default range, will be adjusted by manager
+				},
+				Resources: []string{}, // Basic resources list
+			},
+			Status: shardv1.ShardInstanceStatus{
+				Phase:             shardv1.ShardPhasePending,
+				AssignedResources: []string{},
+				LastHeartbeat:     metav1.Now(),
+			},
+		}
+		
+		if err := ws.client.Create(ctx, shard); err != nil {
+			return fmt.Errorf("failed to create shard instance: %w", err)
+		}
+		
+		ws.logger.Info("Created basic ShardInstance", "shardId", ws.shardId)
+		
+		// Re-fetch the created shard to get the latest version
+		if err := ws.client.Get(ctx, client.ObjectKey{Name: ws.shardId, Namespace: ws.config.Namespace}, shard); err != nil {
+			return fmt.Errorf("failed to re-fetch created shard instance: %w", err)
+		}
 	}
 
-	// Update shard to running phase
-	if err := shard.TransitionTo(shardv1.ShardPhaseRunning); err != nil {
-		return fmt.Errorf("failed to transition shard to running: %w", err)
-	}
-
-	if err := ws.client.Status().Update(ctx, shard); err != nil {
-		return fmt.Errorf("failed to update shard status: %w", err)
-	}
+	// Don't immediately transition to running - let the heartbeat loop handle it
+	// This avoids potential race conditions during initialization
+	ws.logger.Info("ShardInstance initialized, will transition to running in heartbeat loop")
 
 	return nil
 }

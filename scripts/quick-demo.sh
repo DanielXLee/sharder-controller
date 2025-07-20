@@ -128,7 +128,15 @@ build_controller() {
     # Build the controller binaries
     make build
     
-    log_success "Controller built successfully!"
+    # Build Docker images
+    log_info "Building Docker images..."
+    make docker-build
+    
+    # Load images into kind cluster
+    log_info "Loading images into kind cluster..."
+    make kind-load
+    
+    log_success "Controller built and loaded successfully!"
 }
 
 install_crds() {
@@ -193,15 +201,7 @@ spec:
   scaleDownThreshold: 0.3
   healthCheckInterval: "30s"
   loadBalanceStrategy: "consistent-hash"
-  resources:
-    requests:
-      cpu: "100m"
-      memory: "128Mi"
-    limits:
-      cpu: "200m"
-      memory: "256Mi"
   gracefulShutdownTimeout: "60s"
-  rebalanceThreshold: 0.2
 EOF
     
     # Wait a moment for the controller to process

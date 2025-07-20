@@ -20,15 +20,5 @@ spec:
   # Load balancing strategy
   loadBalanceStrategy: "consistent-hash"
   
-  # Resource specifications for worker shards
-  resources:
-    requests:
-      cpu: "200m"
-      memory: "256Mi"
-    limits:
-      cpu: "500m"
-      memory: "512Mi"
-  
   # Additional configuration
   gracefulShutdownTimeout: "60s"
-  rebalanceThreshold: 0.2

@@ -35,7 +35,6 @@ FROM gcr.io/distroless/static:nonroot
 # Labels for better container management
 LABEL maintainer="Shard Controller Team"
 LABEL description="Kubernetes Shard Controller Manager"
-LABEL version="${VERSION}"
 
 # Copy timezone data
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo

@@ -3,12 +3,14 @@ package client
 import (
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
+	shardv1 "github.com/k8s-shard-controller/pkg/apis/shard/v1"
 	"github.com/k8s-shard-controller/pkg/config"
 )
 
@@ -33,8 +35,16 @@ func NewClientSet(cfg *config.Config) (*ClientSet, error) {
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 
+	// Create scheme with our custom types
+	scheme := runtime.NewScheme()
+	if err := shardv1.AddToScheme(scheme); err != nil {
+		return nil, fmt.Errorf("failed to add shard types to scheme: %w", err)
+	}
+
 	// Create controller-runtime client
-	runtimeClient, err := client.New(restConfig, client.Options{})
+	runtimeClient, err := client.New(restConfig, client.Options{
+		Scheme: scheme,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create controller-runtime client: %w", err)
 	}
@@ -48,7 +58,14 @@ func NewClientSet(cfg *config.Config) (*ClientSet, error) {
 
 // NewManagerWithClientSet creates a controller-runtime manager with the given ClientSet
 func NewManagerWithClientSet(cs *ClientSet, cfg *config.Config) (manager.Manager, error) {
+	// Create scheme with our custom types
+	scheme := runtime.NewScheme()
+	if err := shardv1.AddToScheme(scheme); err != nil {
+		return nil, fmt.Errorf("failed to add shard types to scheme: %w", err)
+	}
+
 	mgr, err := manager.New(cs.Config, manager.Options{
+		Scheme:           scheme,
 		LeaderElection:   cfg.LeaderElection.Enabled,
 		LeaderElectionID: cfg.LeaderElection.ResourceName,
 		LeaseDuration:    &cfg.LeaderElection.LeaseDuration,

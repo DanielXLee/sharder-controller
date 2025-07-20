@@ -130,6 +130,34 @@ create_demo_resources() {
     # Create demo namespace
     kubectl create namespace $DEMO_NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
     
+    # Create a system-wide ShardConfig for the controller itself
+    cat <<EOF | kubectl apply -f -
+apiVersion: shard.io/v1
+kind: ShardConfig
+metadata:
+  name: shard-controller-config
+  namespace: $NAMESPACE
+  labels:
+    app: shard-controller
+    component: system
+spec:
+  minShards: 3
+  maxShards: 10
+  scaleUpThreshold: 0.7
+  scaleDownThreshold: 0.3
+  healthCheckInterval: "30s"
+  loadBalanceStrategy: "consistent-hash"
+  resources:
+    requests:
+      cpu: "200m"
+      memory: "256Mi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+  gracefulShutdownTimeout: "60s"
+  rebalanceThreshold: 0.2
+EOF
+    
     # Create a demo ShardConfig
     cat <<EOF | kubectl apply -f -
 apiVersion: shard.io/v1
@@ -159,7 +187,7 @@ spec:
 EOF
     
     # Wait a moment for the controller to process
-    sleep 5
+    sleep 10
     
     log_success "Demo resources created!"
 }

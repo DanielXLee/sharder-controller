@@ -81,7 +81,7 @@ rules:
 # Custom Resource permissions (limited)
 - apiGroups: ["shard.io"]
   resources: ["shardconfigs", "shardinstances"]
-  verbs: ["get", "list", "watch"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
 - apiGroups: ["shard.io"]
   resources: ["shardinstances/status"]
   verbs: ["get", "update", "patch"]
