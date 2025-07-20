@@ -7,7 +7,6 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-
 	"github.com/k8s-shard-controller/pkg/interfaces"
 )
 
@@ -38,10 +37,10 @@ func NewErrorHandlerIntegration(
 		loadBalancer:     loadBalancer,
 		configManager:    configManager,
 	}
-	
+
 	// Register recovery handlers
 	integration.registerRecoveryHandlers()
-	
+
 	return integration
 }
 
@@ -50,15 +49,15 @@ func (ehi *ErrorHandlerIntegration) registerRecoveryHandlers() {
 	// Register retry handler
 	retryHandler := NewRetryRecoveryHandler(ehi.shardManager)
 	ehi.errorHandler.RegisterRecoveryHandler(RecoveryActionRetry, retryHandler)
-	
+
 	// Register restart handler
 	restartHandler := NewRestartRecoveryHandler(ehi.shardManager)
 	ehi.errorHandler.RegisterRecoveryHandler(RecoveryActionRestart, restartHandler)
-	
+
 	// Register scale handler
 	scaleHandler := NewScaleRecoveryHandler(ehi.shardManager)
 	ehi.errorHandler.RegisterRecoveryHandler(RecoveryActionScale, scaleHandler)
-	
+
 	// Register migrate handler
 	migrateHandler := NewMigrateRecoveryHandler(ehi.resourceMigrator, ehi.shardManager)
 	ehi.errorHandler.RegisterRecoveryHandler(RecoveryActionMigrate, migrateHandler)
@@ -79,7 +78,7 @@ func (ehi *ErrorHandlerIntegration) HandleShardStartupFailure(ctx context.Contex
 			"shard_id": shardID,
 		},
 	}
-	
+
 	return ehi.errorHandler.HandleError(ctx, errorCtx)
 }
 
@@ -98,7 +97,7 @@ func (ehi *ErrorHandlerIntegration) HandleShardRuntimeFailure(ctx context.Contex
 			"shard_id": shardID,
 		},
 	}
-	
+
 	return ehi.errorHandler.HandleError(ctx, errorCtx)
 }
 
@@ -120,7 +119,7 @@ func (ehi *ErrorHandlerIntegration) HandleMigrationFailure(ctx context.Context, 
 			"resource_id":  resourceID,
 		},
 	}
-	
+
 	return ehi.errorHandler.HandleError(ctx, errorCtx)
 }
 
@@ -138,7 +137,7 @@ func (ehi *ErrorHandlerIntegration) HandleNetworkPartition(ctx context.Context, 
 			"network_issue": true,
 		},
 	}
-	
+
 	return ehi.errorHandler.HandleError(ctx, errorCtx)
 }
 
@@ -156,7 +155,7 @@ func (ehi *ErrorHandlerIntegration) HandleConfigurationError(ctx context.Context
 			"config_type": configType,
 		},
 	}
-	
+
 	return ehi.errorHandler.HandleError(ctx, errorCtx)
 }
 
@@ -174,14 +173,14 @@ func (ehi *ErrorHandlerIntegration) HandleResourceExhaustion(ctx context.Context
 			"resource_type": resourceType,
 		},
 	}
-	
+
 	return ehi.errorHandler.HandleError(ctx, errorCtx)
 }
 
 // HandleSystemOverload handles system overload scenarios
 func (ehi *ErrorHandlerIntegration) HandleSystemOverload(ctx context.Context, totalLoad float64, threshold float64, shardCount int) error {
 	err := fmt.Errorf("system overload detected: load=%.2f, threshold=%.2f, shards=%d", totalLoad, threshold, shardCount)
-	
+
 	errorCtx := &ErrorContext{
 		ErrorType:  ErrorTypeSystemOverload,
 		Severity:   ErrorSeverityCritical,
@@ -191,12 +190,12 @@ func (ehi *ErrorHandlerIntegration) HandleSystemOverload(ctx context.Context, to
 		Error:      err,
 		RetryCount: 0,
 		Metadata: map[string]interface{}{
-			"total_load":   totalLoad,
-			"threshold":    threshold,
-			"shard_count":  shardCount,
+			"total_load":  totalLoad,
+			"threshold":   threshold,
+			"shard_count": shardCount,
 		},
 	}
-	
+
 	return ehi.errorHandler.HandleError(ctx, errorCtx)
 }
 
@@ -214,7 +213,7 @@ func (ehi *ErrorHandlerIntegration) HandleLeaderElectionFailure(ctx context.Cont
 			"leader_election": true,
 		},
 	}
-	
+
 	return ehi.errorHandler.HandleError(ctx, errorCtx)
 }
 
@@ -222,10 +221,10 @@ func (ehi *ErrorHandlerIntegration) HandleLeaderElectionFailure(ctx context.Cont
 func (ehi *ErrorHandlerIntegration) MonitorAndHandleErrors(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 	logger.Info("Starting error monitoring and handling")
-	
+
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -242,22 +241,22 @@ func (ehi *ErrorHandlerIntegration) MonitorAndHandleErrors(ctx context.Context) 
 // performErrorDetection performs proactive error detection
 func (ehi *ErrorHandlerIntegration) performErrorDetection(ctx context.Context) error {
 	logger := log.FromContext(ctx)
-	
+
 	// Check for unhealthy shards
 	if err := ehi.detectUnhealthyShards(ctx); err != nil {
 		logger.Error(err, "Failed to detect unhealthy shards")
 	}
-	
+
 	// Check for system overload
 	if err := ehi.detectSystemOverload(ctx); err != nil {
 		logger.Error(err, "Failed to detect system overload")
 	}
-	
+
 	// Check for configuration issues
 	if err := ehi.detectConfigurationIssues(ctx); err != nil {
 		logger.Error(err, "Failed to detect configuration issues")
 	}
-	
+
 	return nil
 }
 
@@ -267,7 +266,7 @@ func (ehi *ErrorHandlerIntegration) detectUnhealthyShards(ctx context.Context) e
 	if err != nil {
 		return fmt.Errorf("failed to list shards: %w", err)
 	}
-	
+
 	for _, shard := range shards {
 		if !shard.IsHealthy() {
 			// Handle unhealthy shard
@@ -277,7 +276,7 @@ func (ehi *ErrorHandlerIntegration) detectUnhealthyShards(ctx context.Context) e
 			}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -287,25 +286,25 @@ func (ehi *ErrorHandlerIntegration) detectSystemOverload(ctx context.Context) er
 	if err != nil {
 		return fmt.Errorf("failed to list shards: %w", err)
 	}
-	
+
 	if len(shards) == 0 {
 		return nil
 	}
-	
+
 	// Calculate total load
 	totalLoad := 0.0
 	for _, shard := range shards {
 		totalLoad += shard.Status.Load
 	}
 	averageLoad := totalLoad / float64(len(shards))
-	
+
 	// Define overload threshold
 	overloadThreshold := 0.9
-	
+
 	if averageLoad > overloadThreshold {
 		return ehi.HandleSystemOverload(ctx, averageLoad, overloadThreshold, len(shards))
 	}
-	
+
 	return nil
 }
 
@@ -316,7 +315,7 @@ func (ehi *ErrorHandlerIntegration) detectConfigurationIssues(ctx context.Contex
 	if err != nil {
 		return ehi.HandleConfigurationError(ctx, "shard_config", err)
 	}
-	
+
 	return nil
 }
 
@@ -324,22 +323,22 @@ func (ehi *ErrorHandlerIntegration) detectConfigurationIssues(ctx context.Contex
 func (ehi *ErrorHandlerIntegration) GetErrorStatistics() ErrorStatistics {
 	activeErrors := ehi.errorHandler.GetActiveErrors()
 	errorHistory := ehi.errorHandler.GetErrorHistory()
-	
+
 	stats := ErrorStatistics{
-		ActiveErrorCount:   len(activeErrors),
-		TotalErrorCount:    len(errorHistory),
-		ErrorsByType:       make(map[ErrorType]int),
-		ErrorsBySeverity:   make(map[ErrorSeverity]int),
-		ErrorsByComponent:  make(map[string]int),
+		ActiveErrorCount:  len(activeErrors),
+		TotalErrorCount:   len(errorHistory),
+		ErrorsByType:      make(map[ErrorType]int),
+		ErrorsBySeverity:  make(map[ErrorSeverity]int),
+		ErrorsByComponent: make(map[string]int),
 	}
-	
+
 	// Count errors by type, severity, and component
 	for _, errorCtx := range errorHistory {
 		stats.ErrorsByType[errorCtx.ErrorType]++
 		stats.ErrorsBySeverity[errorCtx.Severity]++
 		stats.ErrorsByComponent[errorCtx.Component]++
 	}
-	
+
 	// Calculate recent error rate (last hour)
 	recentThreshold := time.Now().Add(-1 * time.Hour)
 	recentErrors := 0
@@ -349,18 +348,18 @@ func (ehi *ErrorHandlerIntegration) GetErrorStatistics() ErrorStatistics {
 		}
 	}
 	stats.RecentErrorRate = float64(recentErrors) / 60.0 // errors per minute
-	
+
 	return stats
 }
 
 // ErrorStatistics contains error statistics
 type ErrorStatistics struct {
-	ActiveErrorCount   int                        `json:"active_error_count"`
-	TotalErrorCount    int                        `json:"total_error_count"`
-	RecentErrorRate    float64                    `json:"recent_error_rate"`
-	ErrorsByType       map[ErrorType]int          `json:"errors_by_type"`
-	ErrorsBySeverity   map[ErrorSeverity]int      `json:"errors_by_severity"`
-	ErrorsByComponent  map[string]int             `json:"errors_by_component"`
+	ActiveErrorCount  int                   `json:"active_error_count"`
+	TotalErrorCount   int                   `json:"total_error_count"`
+	RecentErrorRate   float64               `json:"recent_error_rate"`
+	ErrorsByType      map[ErrorType]int     `json:"errors_by_type"`
+	ErrorsBySeverity  map[ErrorSeverity]int `json:"errors_by_severity"`
+	ErrorsByComponent map[string]int        `json:"errors_by_component"`
 }
 
 // HealthCheckErrorDetector integrates with health checker to detect and handle errors
@@ -385,7 +384,7 @@ func (hced *HealthCheckErrorDetector) OnShardFailed(ctx context.Context, shardID
 func (hced *HealthCheckErrorDetector) OnShardRecovered(ctx context.Context, shardID string) error {
 	logger := log.FromContext(ctx)
 	logger.Info("Shard recovered from failure", "shardId", shardID)
-	
+
 	// Clear any active errors for this shard
 	activeErrors := hced.errorIntegration.errorHandler.GetActiveErrors()
 	for errorID, errorCtx := range activeErrors {
@@ -394,7 +393,7 @@ func (hced *HealthCheckErrorDetector) OnShardRecovered(ctx context.Context, shar
 			logger.Info("Cleared active error for recovered shard", "shardId", shardID, "errorId", errorID)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -419,17 +418,17 @@ func (ced *ConfigurationErrorDetector) OnConfigurationError(ctx context.Context,
 func (ced *ConfigurationErrorDetector) OnConfigurationChanged(ctx context.Context, configType string, changes map[string]interface{}) error {
 	logger := log.FromContext(ctx)
 	logger.Info("Configuration changed", "configType", configType, "changes", changes)
-	
+
 	// Validate new configuration
 	config, err := ced.errorIntegration.configManager.LoadConfig(ctx)
 	if err != nil {
 		return ced.OnConfigurationError(ctx, configType, err)
 	}
-	
+
 	// Validate configuration
 	if err := ced.errorIntegration.configManager.ValidateConfig(config); err != nil {
 		return ced.OnConfigurationError(ctx, configType, err)
 	}
-	
+
 	return nil
 }

@@ -298,7 +298,7 @@ func createTestShardManager(t *testing.T) (*ShardManager, *MockLoadBalancer, *Mo
 	// Create fake clients
 	scheme := runtime.NewScheme()
 	require.NoError(t, shardv1.AddToScheme(scheme))
-	
+
 	fakeClient := clientfake.NewClientBuilder().WithScheme(scheme).Build()
 	fakeKubeClient := fake.NewSimpleClientset()
 
@@ -379,7 +379,7 @@ func TestNewShardManager(t *testing.T) {
 				scheme := runtime.NewScheme()
 				shardv1.AddToScheme(scheme)
 				fakeClient := clientfake.NewClientBuilder().WithScheme(scheme).Build()
-				
+
 				return fakeClient, &MockLoadBalancer{}, &MockHealthChecker{}, &MockResourceMigrator{}, &MockConfigManager{}, &MockMetricsCollector{}, &config.Config{
 					Namespace: "test",
 					NodeName:  "test-node",
@@ -400,7 +400,7 @@ func TestNewShardManager(t *testing.T) {
 				scheme := runtime.NewScheme()
 				shardv1.AddToScheme(scheme)
 				fakeClient := clientfake.NewClientBuilder().WithScheme(scheme).Build()
-				
+
 				return fakeClient, &MockLoadBalancer{}, &MockHealthChecker{}, &MockResourceMigrator{}, &MockConfigManager{}, &MockMetricsCollector{}, nil
 			},
 			expectError: true,
@@ -410,13 +410,13 @@ func TestNewShardManager(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			client, lb, hc, rm, cm, mc, cfg := tt.setupMocks()
-			
+
 			fakeKubeClient := fake.NewSimpleClientset()
-			
+
 			mockAlertManager := &MockAlertManager{}
 			mockStructuredLogger := &MockStructuredLogger{}
 			sm, err := NewShardManager(client, fakeKubeClient, lb, hc, rm, cm, mc, mockAlertManager, mockStructuredLogger, cfg)
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 				assert.Nil(t, sm)
@@ -431,9 +431,9 @@ func TestNewShardManager(t *testing.T) {
 
 func TestCreateShard(t *testing.T) {
 	sm, _, _, _, mockConfigManager, mockMetricsCollector, fakeClient := createTestShardManager(t)
-	
+
 	ctx := context.Background()
-	
+
 	// Setup mocks
 	testConfig := &shardv1.ShardConfig{
 		Spec: shardv1.ShardConfigSpec{
@@ -443,43 +443,43 @@ func TestCreateShard(t *testing.T) {
 			ScaleDownThreshold: 0.2,
 		},
 	}
-	
+
 	mockConfigManager.On("LoadConfig", ctx).Return(testConfig, nil)
 	mockMetricsCollector.On("RecordCustomMetric", "shard_created_total", float64(1), mock.AnythingOfType("map[string]string")).Return(nil)
 
 	// Test shard creation
 	shard, err := sm.CreateShard(ctx, testConfig)
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, shard)
 	assert.Equal(t, shardv1.ShardPhasePending, shard.Status.Phase)
 	assert.NotEmpty(t, shard.Spec.ShardID)
 	assert.NotNil(t, shard.Spec.HashRange)
-	
+
 	// Verify shard was created in fake client
 	createdShard := &shardv1.ShardInstance{}
 	err = fakeClient.Get(ctx, client.ObjectKey{Name: shard.Name, Namespace: shard.Namespace}, createdShard)
 	assert.NoError(t, err)
 	assert.Equal(t, shard.Spec.ShardID, createdShard.Spec.ShardID)
-	
+
 	mockConfigManager.AssertExpectations(t)
 	mockMetricsCollector.AssertExpectations(t)
 }
 
 func TestDeleteShard(t *testing.T) {
 	sm, _, _, _, _, _, fakeClient := createTestShardManager(t)
-	
+
 	ctx := context.Background()
-	
+
 	// Create a test shard first
 	testShard := createTestShardInstance("test-shard", shardv1.ShardPhaseRunning, 0.5, true)
 	err := fakeClient.Create(ctx, testShard)
 	require.NoError(t, err)
-	
+
 	// Test shard deletion
 	err = sm.DeleteShard(ctx, testShard.Name)
 	assert.NoError(t, err)
-	
+
 	// Verify shard was deleted
 	deletedShard := &shardv1.ShardInstance{}
 	err = fakeClient.Get(ctx, client.ObjectKey{Name: testShard.Name, Namespace: testShard.Namespace}, deletedShard)
@@ -488,14 +488,14 @@ func TestDeleteShard(t *testing.T) {
 
 func TestScaleUp(t *testing.T) {
 	sm, _, _, _, mockConfigManager, mockMetricsCollector, fakeClient := createTestShardManager(t)
-	
+
 	ctx := context.Background()
-	
+
 	// Create initial shard
 	initialShard := createTestShardInstance("initial-shard", shardv1.ShardPhaseRunning, 0.5, true)
 	err := fakeClient.Create(ctx, initialShard)
 	require.NoError(t, err)
-	
+
 	// Setup mocks
 	testConfig := &shardv1.ShardConfig{
 		Spec: shardv1.ShardConfigSpec{
@@ -505,33 +505,33 @@ func TestScaleUp(t *testing.T) {
 			ScaleDownThreshold: 0.2,
 		},
 	}
-	
+
 	mockConfigManager.On("LoadConfig", ctx).Return(testConfig, nil)
 	mockMetricsCollector.On("RecordCustomMetric", "shard_created_total", float64(1), mock.AnythingOfType("map[string]string")).Return(nil)
 
 	// Test scale up
 	err = sm.ScaleUp(ctx, 2)
 	assert.NoError(t, err)
-	
+
 	// Verify we now have 2 shards
 	shards, err := sm.ListShards(ctx)
 	assert.NoError(t, err)
 	assert.Len(t, shards, 2)
-	
+
 	mockConfigManager.AssertExpectations(t)
 	mockMetricsCollector.AssertExpectations(t)
 }
 
 func TestScaleDown(t *testing.T) {
 	sm, _, _, _, _, _, fakeClient := createTestShardManager(t)
-	
+
 	ctx := context.Background()
-	
+
 	// Create multiple shards
 	shard1 := createTestShardInstance("shard-1", shardv1.ShardPhaseRunning, 0.3, true)
 	shard2 := createTestShardInstance("shard-2", shardv1.ShardPhaseRunning, 0.4, true)
 	shard3 := createTestShardInstance("shard-3", shardv1.ShardPhaseRunning, 0.2, true)
-	
+
 	err := fakeClient.Create(ctx, shard1)
 	require.NoError(t, err)
 	err = fakeClient.Create(ctx, shard2)
@@ -542,7 +542,7 @@ func TestScaleDown(t *testing.T) {
 	// Test scale down
 	err = sm.ScaleDown(ctx, 2)
 	assert.NoError(t, err)
-	
+
 	// Verify we now have 2 shards
 	shards, err := sm.ListShards(ctx)
 	assert.NoError(t, err)
@@ -551,85 +551,85 @@ func TestScaleDown(t *testing.T) {
 
 func TestAssignResource(t *testing.T) {
 	sm, mockLoadBalancer, _, _, _, _, fakeClient := createTestShardManager(t)
-	
+
 	ctx := context.Background()
-	
+
 	// Create test shard
 	testShard := createTestShardInstance("test-shard", shardv1.ShardPhaseRunning, 0.5, true)
 	err := fakeClient.Create(ctx, testShard)
 	require.NoError(t, err)
-	
+
 	// Setup mocks
 	testResource := &interfaces.Resource{
 		ID:   "test-resource",
 		Type: "test-type",
 	}
-	
+
 	mockLoadBalancer.On("AssignResourceToShard", testResource, mock.AnythingOfType("[]*v1.ShardInstance")).Return(testShard, nil)
 
 	// Test resource assignment
 	assignedShardId, err := sm.AssignResource(ctx, testResource)
-	
+
 	assert.NoError(t, err)
 	assert.Equal(t, testShard.Spec.ShardID, assignedShardId)
-	
+
 	mockLoadBalancer.AssertExpectations(t)
 }
 
 func TestCheckShardHealth(t *testing.T) {
 	sm, _, mockHealthChecker, _, _, _, fakeClient := createTestShardManager(t)
-	
+
 	ctx := context.Background()
-	
+
 	// Create test shard
 	testShard := createTestShardInstance("test-shard", shardv1.ShardPhaseRunning, 0.5, true)
 	err := fakeClient.Create(ctx, testShard)
 	require.NoError(t, err)
-	
+
 	// Setup mocks
 	expectedHealth := &shardv1.HealthStatus{
 		Healthy:   true,
 		LastCheck: metav1.Now(),
 		Message:   "Shard is healthy",
 	}
-	
+
 	mockHealthChecker.On("CheckHealth", ctx, mock.AnythingOfType("*v1.ShardInstance")).Return(expectedHealth, nil)
 
 	// Test health check
 	health, err := sm.CheckShardHealth(ctx, testShard.Name)
-	
+
 	assert.NoError(t, err)
 	assert.Equal(t, expectedHealth.Healthy, health.Healthy)
 	assert.Equal(t, expectedHealth.Message, health.Message)
-	
+
 	mockHealthChecker.AssertExpectations(t)
 }
 
 func TestHandleFailedShard(t *testing.T) {
 	sm, _, mockHealthChecker, _, _, _, _ := createTestShardManager(t)
-	
+
 	ctx := context.Background()
 	shardId := "failed-shard"
-	
+
 	// Setup mocks
 	mockHealthChecker.On("OnShardFailed", ctx, shardId).Return(nil)
 
 	// Test failed shard handling
 	err := sm.HandleFailedShard(ctx, shardId)
-	
+
 	assert.NoError(t, err)
 	mockHealthChecker.AssertExpectations(t)
 }
 
 func TestListShards(t *testing.T) {
 	sm, _, _, _, _, _, fakeClient := createTestShardManager(t)
-	
+
 	ctx := context.Background()
-	
+
 	// Create multiple test shards
 	shard1 := createTestShardInstance("shard-1", shardv1.ShardPhaseRunning, 0.3, true)
 	shard2 := createTestShardInstance("shard-2", shardv1.ShardPhaseRunning, 0.4, true)
-	
+
 	err := fakeClient.Create(ctx, shard1)
 	require.NoError(t, err)
 	err = fakeClient.Create(ctx, shard2)
@@ -637,10 +637,10 @@ func TestListShards(t *testing.T) {
 
 	// Test listing shards
 	shards, err := sm.ListShards(ctx)
-	
+
 	assert.NoError(t, err)
 	assert.Len(t, shards, 2)
-	
+
 	// Verify shard IDs
 	shardIds := make([]string, len(shards))
 	for i, shard := range shards {
@@ -652,20 +652,20 @@ func TestListShards(t *testing.T) {
 
 func TestCountHealthyShards(t *testing.T) {
 	sm, _, _, _, _, _, _ := createTestShardManager(t)
-	
+
 	shards := []*shardv1.ShardInstance{
 		createTestShardInstance("shard-1", shardv1.ShardPhaseRunning, 0.3, true),
 		createTestShardInstance("shard-2", shardv1.ShardPhaseRunning, 0.4, false),
 		createTestShardInstance("shard-3", shardv1.ShardPhaseRunning, 0.2, true),
 	}
-	
+
 	healthyCount := sm.countHealthyShards(shards)
 	assert.Equal(t, 2, healthyCount)
 }
 
 func TestCalculateTotalLoad(t *testing.T) {
 	sm, _, _, _, _, _, _ := createTestShardManager(t)
-	
+
 	tests := []struct {
 		name     string
 		shards   []*shardv1.ShardInstance
@@ -692,7 +692,7 @@ func TestCalculateTotalLoad(t *testing.T) {
 			expected: 0.5, // Average of 0.3 and 0.7
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			totalLoad := sm.calculateTotalLoad(tt.shards)
@@ -703,7 +703,7 @@ func TestCalculateTotalLoad(t *testing.T) {
 
 func TestCalculateHashRangeForNewShard(t *testing.T) {
 	sm, _, _, _, _, _, _ := createTestShardManager(t)
-	
+
 	tests := []struct {
 		name           string
 		existingShards []*shardv1.ShardInstance
@@ -725,7 +725,7 @@ func TestCalculateHashRangeForNewShard(t *testing.T) {
 			expectedEnd:   0xFFFFFFFF,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			hashRange := sm.calculateHashRangeForNewShard(tt.existingShards)
@@ -737,22 +737,22 @@ func TestCalculateHashRangeForNewShard(t *testing.T) {
 
 func TestSelectShardsForRemoval(t *testing.T) {
 	sm, _, _, _, _, _, _ := createTestShardManager(t)
-	
+
 	shards := []*shardv1.ShardInstance{
 		createTestShardInstance("healthy-shard-1", shardv1.ShardPhaseRunning, 0.3, true),
 		createTestShardInstance("unhealthy-shard", shardv1.ShardPhaseFailed, 0.4, false),
 		createTestShardInstance("healthy-shard-2", shardv1.ShardPhaseRunning, 0.2, true),
 	}
-	
+
 	// Test selecting 1 shard for removal (should prefer unhealthy)
 	selected := sm.selectShardsForRemoval(shards, 1)
 	assert.Len(t, selected, 1)
 	assert.Equal(t, "unhealthy-shard", selected[0].Spec.ShardID)
-	
+
 	// Test selecting 2 shards for removal
 	selected = sm.selectShardsForRemoval(shards, 2)
 	assert.Len(t, selected, 2)
-	
+
 	// Should include the unhealthy shard
 	shardIds := make([]string, len(selected))
 	for i, shard := range selected {
@@ -763,40 +763,40 @@ func TestSelectShardsForRemoval(t *testing.T) {
 
 func TestIsLeader(t *testing.T) {
 	sm, _, _, _, _, _, _ := createTestShardManager(t)
-	
+
 	// Initially should not be leader
 	assert.False(t, sm.IsLeader())
-	
+
 	// Simulate becoming leader
 	sm.leaderMu.Lock()
 	sm.isLeader = true
 	sm.leaderMu.Unlock()
-	
+
 	assert.True(t, sm.IsLeader())
-	
+
 	// Simulate losing leadership
 	sm.leaderMu.Lock()
 	sm.isLeader = false
 	sm.leaderMu.Unlock()
-	
+
 	assert.False(t, sm.IsLeader())
 }
 
 // Integration test for scaling decision logic
 func TestMakeScalingDecision(t *testing.T) {
 	sm, _, _, _, mockConfigManager, mockMetricsCollector, fakeClient := createTestShardManager(t)
-	
+
 	ctx := context.Background()
-	
+
 	// Create test shards with high load
 	shard1 := createTestShardInstance("shard-1", shardv1.ShardPhaseRunning, 0.9, true)
 	shard2 := createTestShardInstance("shard-2", shardv1.ShardPhaseRunning, 0.8, true)
-	
+
 	err := fakeClient.Create(ctx, shard1)
 	require.NoError(t, err)
 	err = fakeClient.Create(ctx, shard2)
 	require.NoError(t, err)
-	
+
 	// Setup mocks for scale up scenario
 	testConfig := &shardv1.ShardConfig{
 		Spec: shardv1.ShardConfigSpec{
@@ -806,7 +806,7 @@ func TestMakeScalingDecision(t *testing.T) {
 			ScaleDownThreshold: 0.2,
 		},
 	}
-	
+
 	mockConfigManager.On("LoadConfig", ctx).Return(testConfig, nil)
 	mockMetricsCollector.On("RecordCustomMetric", "shard_scale_up_total", float64(1), mock.AnythingOfType("map[string]string")).Return(nil)
 	mockMetricsCollector.On("RecordCustomMetric", "shard_created_total", float64(1), mock.AnythingOfType("map[string]string")).Return(nil)
@@ -814,12 +814,12 @@ func TestMakeScalingDecision(t *testing.T) {
 	// Test scaling decision
 	err = sm.makeScalingDecision(ctx)
 	assert.NoError(t, err)
-	
+
 	// Verify scale up occurred
 	shards, err := sm.ListShards(ctx)
 	assert.NoError(t, err)
 	assert.Len(t, shards, 3) // Should have scaled up from 2 to 3
-	
+
 	mockConfigManager.AssertExpectations(t)
 	mockMetricsCollector.AssertExpectations(t)
 }

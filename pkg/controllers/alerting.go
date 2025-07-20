@@ -8,19 +8,17 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/k8s-shard-controller/pkg/interfaces"
+	"github.com/sirupsen/logrus"
 )
-
-
 
 // AlertingConfig represents alerting configuration
 type AlertingConfig struct {
-	Enabled     bool          `json:"enabled"`
-	WebhookURL  string        `json:"webhookUrl"`
-	Timeout     time.Duration `json:"timeout"`
-	RetryCount  int           `json:"retryCount"`
-	RetryDelay  time.Duration `json:"retryDelay"`
+	Enabled    bool          `json:"enabled"`
+	WebhookURL string        `json:"webhookUrl"`
+	Timeout    time.Duration `json:"timeout"`
+	RetryCount int           `json:"retryCount"`
+	RetryDelay time.Duration `json:"retryDelay"`
 }
 
 // AlertManager handles alert notifications

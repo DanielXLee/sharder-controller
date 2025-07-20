@@ -480,7 +480,7 @@ func TestHealthStatus(t *testing.T) {
 	if healthStatus.IsStale(time.Hour) {
 		t.Error("Expected health status not to be stale with very short duration")
 	}
-	
+
 	// Set an old timestamp to test staleness
 	healthStatus.LastCheck = metav1.Time{Time: time.Now().Add(-2 * time.Hour)}
 	if !healthStatus.IsStale(time.Hour) {
@@ -612,33 +612,33 @@ func TestValidateLoadMetrics(t *testing.T) {
 		{
 			name: "valid load metrics",
 			loadMetrics: &LoadMetrics{
-				ResourceCount:   100,
-				CPUUsage:        0.5,
-				MemoryUsage:     0.6,
-				ProcessingRate:  50.0,
-				QueueLength:     10,
+				ResourceCount:  100,
+				CPUUsage:       0.5,
+				MemoryUsage:    0.6,
+				ProcessingRate: 50.0,
+				QueueLength:    10,
 			},
 			wantErr: false,
 		},
 		{
 			name: "invalid resource count",
 			loadMetrics: &LoadMetrics{
-				ResourceCount:   -1,
-				CPUUsage:        0.5,
-				MemoryUsage:     0.6,
-				ProcessingRate:  50.0,
-				QueueLength:     10,
+				ResourceCount:  -1,
+				CPUUsage:       0.5,
+				MemoryUsage:    0.6,
+				ProcessingRate: 50.0,
+				QueueLength:    10,
 			},
 			wantErr: true,
 		},
 		{
 			name: "invalid CPU usage",
 			loadMetrics: &LoadMetrics{
-				ResourceCount:   100,
-				CPUUsage:        1.5,
-				MemoryUsage:     0.6,
-				ProcessingRate:  50.0,
-				QueueLength:     10,
+				ResourceCount:  100,
+				CPUUsage:       1.5,
+				MemoryUsage:    0.6,
+				ProcessingRate: 50.0,
+				QueueLength:    10,
 			},
 			wantErr: true,
 		},
@@ -657,9 +657,9 @@ func TestValidateLoadMetrics(t *testing.T) {
 
 func TestValidateMigrationPlan(t *testing.T) {
 	tests := []struct {
-		name           string
-		migrationPlan  *MigrationPlan
-		wantErr        bool
+		name          string
+		migrationPlan *MigrationPlan
+		wantErr       bool
 	}{
 		{
 			name:          "nil migration plan",

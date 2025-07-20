@@ -33,10 +33,10 @@ type ControllerManager struct {
 	structuredLogger interfaces.StructuredLogger
 
 	// State management
-	mu       sync.RWMutex
-	running  bool
-	stopCh   chan struct{}
-	doneCh   chan struct{}
+	mu      sync.RWMutex
+	running bool
+	stopCh  chan struct{}
+	doneCh  chan struct{}
 }
 
 // NewControllerManager creates a new controller manager
@@ -179,12 +179,12 @@ func (cm *ControllerManager) initializeComponents() error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize config manager: %w", err)
 	}
-	
+
 	// Set the manager reference for watching resources
 	if cm.manager != nil {
 		configManager.SetManager(cm.manager)
 	}
-	
+
 	cm.configManager = configManager
 
 	// Initialize load balancer

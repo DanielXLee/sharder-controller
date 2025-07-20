@@ -1,0 +1,47 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+docs/
+examples/
+
+# Build artifacts
+bin/
+coverage.out
+coverage.html
+
+# Test files
+test/
+*_test.go
+
+# Development files
+.kiro/
+hack/
+scripts/
+
+# Kubernetes manifests
+manifests/
+helm/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Docker files (except the one being used)
+Dockerfile*
+!Dockerfile
+.dockerignore

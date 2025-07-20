@@ -160,19 +160,19 @@ func TestValidateShardInstance(t *testing.T) {
 
 func TestValidateConfig(t *testing.T) {
 	validConfig := config.DefaultConfig()
-	
+
 	t.Run("valid config", func(t *testing.T) {
 		err := ValidateConfig(validConfig)
 		assert.NoError(t, err)
 	})
-	
+
 	t.Run("empty namespace", func(t *testing.T) {
 		cfg := *validConfig
 		cfg.Namespace = ""
 		err := ValidateConfig(&cfg)
 		assert.Error(t, err)
 	})
-	
+
 	t.Run("invalid log level", func(t *testing.T) {
 		cfg := *validConfig
 		cfg.LogLevel = "invalid"
@@ -244,7 +244,7 @@ func TestCalculateLoadScore(t *testing.T) {
 
 func TestIsShardHealthy(t *testing.T) {
 	now := metav1.Now()
-	
+
 	tests := []struct {
 		name   string
 		status *shardv1.ShardInstanceStatus

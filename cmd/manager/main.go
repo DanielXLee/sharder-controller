@@ -72,11 +72,11 @@ func main() {
 
 	// Wait for shutdown
 	<-ctx.Done()
-	
+
 	// Stop controller manager
 	if err := controllerManager.Stop(); err != nil {
 		logger.Error(err, "Failed to stop controller manager gracefully")
 	}
-	
+
 	logger.Info("Shard Controller stopped")
 }

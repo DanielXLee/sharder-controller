@@ -18,13 +18,13 @@ import (
 // TestShardCreationPerformance tests shard creation speed
 func (suite *IntegrationTestSuite) TestShardCreationPerformance() {
 	config := suite.createTestShardConfig()
-	
+
 	// Test single shard creation time
 	start := time.Now()
 	shard, err := suite.shardManager.CreateShard(suite.ctx, &config.Spec)
 	require.NoError(suite.T(), err)
 	singleCreationTime := time.Since(start)
-	
+
 	suite.T().Logf("Single shard creation time: %v", singleCreationTime)
 	assert.Less(suite.T(), singleCreationTime, 5*time.Second, "Single shard creation should be fast")
 
@@ -35,10 +35,10 @@ func (suite *IntegrationTestSuite) TestShardCreationPerformance() {
 	// Test batch shard creation
 	shardCount := 10
 	start = time.Now()
-	
+
 	var wg sync.WaitGroup
 	errors := make(chan error, shardCount)
-	
+
 	for i := 0; i < shardCount; i++ {
 		wg.Add(1)
 		go func(index int) {
@@ -49,18 +49,18 @@ func (suite *IntegrationTestSuite) TestShardCreationPerformance() {
 			}
 		}(i)
 	}
-	
+
 	wg.Wait()
 	close(errors)
-	
+
 	batchCreationTime := time.Since(start)
 	suite.T().Logf("Batch creation of %d shards time: %v", shardCount, batchCreationTime)
-	
+
 	// Check for errors
 	for err := range errors {
 		require.NoError(suite.T(), err)
 	}
-	
+
 	// Verify all shards were created
 	err = suite.waitForCondition(10*time.Second, func() bool {
 		shardList := &shardv1.ShardInstanceList{}
@@ -68,7 +68,7 @@ func (suite *IntegrationTestSuite) TestShardCreationPerformance() {
 		return err == nil && len(shardList.Items) == shardCount
 	})
 	require.NoError(suite.T(), err)
-	
+
 	// Average creation time should be reasonable
 	avgCreationTime := batchCreationTime / time.Duration(shardCount)
 	suite.T().Logf("Average shard creation time: %v", avgCreationTime)
@@ -80,7 +80,7 @@ func (suite *IntegrationTestSuite) TestLoadBalancingPerformance() {
 	// Create multiple shards
 	shardCount := 20
 	shards := make([]*shardv1.ShardInstance, shardCount)
-	
+
 	for i := 0; i < shardCount; i++ {
 		shardID := fmt.Sprintf("perf-shard-%d", i)
 		shards[i] = suite.createTestShardInstance(shardID, shardv1.ShardPhaseRunning)
@@ -105,21 +105,21 @@ func (suite *IntegrationTestSuite) TestLoadBalancingPerformance() {
 
 			// Test resource assignment performance
 			start := time.Now()
-			
+
 			for i := 0; i < resourceCount; i++ {
 				resource := &interfaces.Resource{ID: fmt.Sprintf("perf-resource-%d", i)}
 				_, err := suite.loadBalancer.AssignResourceToShard(resource, shards)
 				require.NoError(t, err)
 			}
-			
+
 			assignmentTime := time.Since(start)
 			avgAssignmentTime := assignmentTime / time.Duration(resourceCount)
-			
-			t.Logf("Strategy %s: %d assignments in %v (avg: %v)", 
+
+			t.Logf("Strategy %s: %d assignments in %v (avg: %v)",
 				strategy, resourceCount, assignmentTime, avgAssignmentTime)
-			
+
 			// Should be able to assign resources quickly
-			assert.Less(t, avgAssignmentTime, 1*time.Millisecond, 
+			assert.Less(t, avgAssignmentTime, 1*time.Millisecond,
 				"Resource assignment should be fast")
 		})
 	}
@@ -132,7 +132,7 @@ func (suite *IntegrationTestSuite) TestHealthCheckingPerformance() {
 	for i := 0; i < shardCount; i++ {
 		shardID := fmt.Sprintf("health-perf-shard-%d", i)
 		shard := suite.createTestShardInstance(shardID, shardv1.ShardPhaseRunning)
-		
+
 		// Mix of healthy and unhealthy shards
 		if i%5 == 0 {
 			shard.Status.LastHeartbeat = metav1.Time{Time: time.Now().Add(-10 * time.Minute)}
@@ -143,7 +143,7 @@ func (suite *IntegrationTestSuite) TestHealthCheckingPerformance() {
 
 	// Test health checking performance
 	start := time.Now()
-	
+
 	shardList := &shardv1.ShardInstanceList{}
 	err := suite.k8sClient.List(suite.ctx, shardList)
 	require.NoError(suite.T(), err)
@@ -157,31 +157,31 @@ func (suite *IntegrationTestSuite) TestHealthCheckingPerformance() {
 			require.NoError(suite.T(), err)
 		}(shard)
 	}
-	
+
 	wg.Wait()
 	healthCheckTime := time.Since(start)
-	
+
 	avgHealthCheckTime := healthCheckTime / time.Duration(shardCount)
-	suite.T().Logf("Health check for %d shards: %v (avg: %v)", 
+	suite.T().Logf("Health check for %d shards: %v (avg: %v)",
 		shardCount, healthCheckTime, avgHealthCheckTime)
-	
-	assert.Less(suite.T(), avgHealthCheckTime, 100*time.Millisecond, 
+
+	assert.Less(suite.T(), avgHealthCheckTime, 100*time.Millisecond,
 		"Health check should be fast")
 
 	// Test continuous health checking performance
 	start = time.Now()
 	err = suite.healthChecker.StartHealthChecking(suite.ctx, 500*time.Millisecond)
 	require.NoError(suite.T(), err)
-	
+
 	// Let it run for a few cycles
 	time.Sleep(3 * time.Second)
-	
+
 	err = suite.healthChecker.StopHealthChecking()
 	require.NoError(suite.T(), err)
-	
+
 	continuousTime := time.Since(start)
 	suite.T().Logf("Continuous health checking for %v", continuousTime)
-	
+
 	// Verify health status was updated
 	summary := suite.healthChecker.GetHealthSummary()
 	assert.Len(suite.T(), summary, shardCount, "All shards should have health status")
@@ -199,7 +199,7 @@ func (suite *IntegrationTestSuite) TestResourceMigrationPerformance() {
 	for i := 0; i < resourceCount; i++ {
 		resources[i] = fmt.Sprintf("migration-resource-%d", i)
 	}
-	
+
 	sourceShard.Status.AssignedResources = resources
 	err := suite.k8sClient.Status().Update(suite.ctx, sourceShard)
 	require.NoError(suite.T(), err)
@@ -219,15 +219,15 @@ func (suite *IntegrationTestSuite) TestResourceMigrationPerformance() {
 	migrationTime := time.Since(start)
 
 	suite.T().Logf("Migration of %d resources: %v", resourceCount, migrationTime)
-	
+
 	// Migration should complete within reasonable time
-	assert.Less(suite.T(), migrationTime, 10*time.Second, 
+	assert.Less(suite.T(), migrationTime, 10*time.Second,
 		"Migration should complete quickly")
 
 	// Verify migration completed
 	err = suite.waitForCondition(5*time.Second, func() bool {
 		updatedTarget := &shardv1.ShardInstance{}
-		err := suite.k8sClient.Get(suite.ctx, 
+		err := suite.k8sClient.Get(suite.ctx,
 			suite.k8sClient.ObjectKeyFromObject(targetShard), updatedTarget)
 		return err == nil && len(updatedTarget.Status.AssignedResources) == resourceCount
 	})
@@ -240,16 +240,16 @@ func (suite *IntegrationTestSuite) TestScalingPerformance() {
 
 	// Test scale up performance
 	scaleUpSizes := []int{2, 5, 10, 15}
-	
+
 	for _, targetSize := range scaleUpSizes {
 		suite.T().Run(fmt.Sprintf("ScaleUp_%d", targetSize), func(t *testing.T) {
 			// Clean up first
 			suite.cleanupTestResources()
-			
+
 			start := time.Now()
 			err := suite.shardManager.ScaleUp(suite.ctx, targetSize)
 			require.NoError(t, err)
-			
+
 			// Wait for scale up to complete
 			err = suite.waitForCondition(30*time.Second, func() bool {
 				shardList := &shardv1.ShardInstanceList{}
@@ -257,13 +257,13 @@ func (suite *IntegrationTestSuite) TestScalingPerformance() {
 				return err == nil && len(shardList.Items) == targetSize
 			})
 			require.NoError(t, err)
-			
+
 			scaleUpTime := time.Since(start)
 			t.Logf("Scale up to %d shards: %v", targetSize, scaleUpTime)
-			
+
 			// Scale up should complete within reasonable time
 			expectedTime := time.Duration(targetSize) * 2 * time.Second
-			assert.Less(t, scaleUpTime, expectedTime, 
+			assert.Less(t, scaleUpTime, expectedTime,
 				"Scale up should complete within expected time")
 		})
 	}
@@ -273,7 +273,7 @@ func (suite *IntegrationTestSuite) TestScalingPerformance() {
 		// Start with 10 shards
 		err := suite.shardManager.ScaleUp(suite.ctx, 10)
 		require.NoError(t, err)
-		
+
 		err = suite.waitForCondition(20*time.Second, func() bool {
 			shardList := &shardv1.ShardInstanceList{}
 			err := suite.k8sClient.List(suite.ctx, shardList)
@@ -285,7 +285,7 @@ func (suite *IntegrationTestSuite) TestScalingPerformance() {
 		start := time.Now()
 		err = suite.shardManager.ScaleDown(suite.ctx, 3)
 		require.NoError(t, err)
-		
+
 		// Wait for scale down to complete
 		err = suite.waitForCondition(30*time.Second, func() bool {
 			shardList := &shardv1.ShardInstanceList{}
@@ -293,7 +293,7 @@ func (suite *IntegrationTestSuite) TestScalingPerformance() {
 			if err != nil {
 				return false
 			}
-			
+
 			runningCount := 0
 			for _, shard := range shardList.Items {
 				if shard.Status.Phase == shardv1.ShardPhaseRunning {
@@ -303,12 +303,12 @@ func (suite *IntegrationTestSuite) TestScalingPerformance() {
 			return runningCount == 3
 		})
 		require.NoError(t, err)
-		
+
 		scaleDownTime := time.Since(start)
 		t.Logf("Scale down from 10 to 3 shards: %v", scaleDownTime)
-		
+
 		// Scale down should complete within reasonable time
-		assert.Less(t, scaleDownTime, 20*time.Second, 
+		assert.Less(t, scaleDownTime, 20*time.Second,
 			"Scale down should complete within expected time")
 	})
 }
@@ -320,7 +320,7 @@ func (suite *IntegrationTestSuite) TestConcurrentOperations() {
 	// Create initial shards
 	err := suite.shardManager.ScaleUp(suite.ctx, 5)
 	require.NoError(suite.T(), err)
-	
+
 	err = suite.waitForCondition(15*time.Second, func() bool {
 		shardList := &shardv1.ShardInstanceList{}
 		err := suite.k8sClient.List(suite.ctx, shardList)
@@ -347,7 +347,7 @@ func (suite *IntegrationTestSuite) TestConcurrentOperations() {
 			errors <- err
 			return
 		}
-		
+
 		shards := make([]*shardv1.ShardInstance, len(shardList.Items))
 		for i := range shardList.Items {
 			shards[i] = &shardList.Items[i]
@@ -374,7 +374,7 @@ func (suite *IntegrationTestSuite) TestConcurrentOperations() {
 				errors <- err
 				return
 			}
-			
+
 			for _, shard := range shardList.Items {
 				_, err := suite.healthChecker.CheckHealth(suite.ctx, &shard)
 				if err != nil {
@@ -397,7 +397,7 @@ func (suite *IntegrationTestSuite) TestConcurrentOperations() {
 				errors <- err
 				return
 			}
-			
+
 			if len(shardList.Items) > 0 {
 				shard := &shardList.Items[i%len(shardList.Items)]
 				shard.Status.Load = float64(i%10) * 0.1

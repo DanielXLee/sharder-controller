@@ -5,8 +5,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/k8s-shard-controller/pkg/config"
+	"github.com/sirupsen/logrus"
 )
 
 // StructuredLogger provides structured logging capabilities
@@ -94,14 +94,14 @@ func (sl *StructuredLogger) LogMigrationEvent(ctx context.Context, sourceShard, 
 // LogScaleEvent logs scaling events
 func (sl *StructuredLogger) LogScaleEvent(ctx context.Context, operation string, fromCount, toCount int, reason string, status string) {
 	sl.logger.WithFields(logrus.Fields{
-		"component":   "shard_manager",
-		"event":       "scale",
-		"operation":   operation,
-		"from_count":  fromCount,
-		"to_count":    toCount,
-		"reason":      reason,
-		"status":      status,
-		"timestamp":   time.Now().UTC(),
+		"component":  "shard_manager",
+		"event":      "scale",
+		"operation":  operation,
+		"from_count": fromCount,
+		"to_count":   toCount,
+		"reason":     reason,
+		"status":     status,
+		"timestamp":  time.Now().UTC(),
 	}).Info("Scale operation event")
 }
 

@@ -13,12 +13,12 @@ import (
 // LoadBalancer implements the LoadBalancer interface
 type LoadBalancer struct {
 	strategy shardv1.LoadBalanceStrategy
-	
+
 	// For consistent hash strategy
 	consistentHash *utils.ConsistentHash
-	
+
 	// For round robin strategy
-	mu            sync.Mutex
+	mu             sync.Mutex
 	lastShardIndex int
 }
 
@@ -27,7 +27,7 @@ func NewLoadBalancer(strategy shardv1.LoadBalanceStrategy, shards []*shardv1.Sha
 	lb := &LoadBalancer{
 		strategy: strategy,
 	}
-	
+
 	// Initialize strategy-specific components
 	switch strategy {
 	case shardv1.ConsistentHashStrategy:
@@ -44,7 +44,7 @@ func NewLoadBalancer(strategy shardv1.LoadBalanceStrategy, shards []*shardv1.Sha
 	default:
 		return nil, fmt.Errorf("unsupported load balance strategy: %s", strategy)
 	}
-	
+
 	return lb, nil
 }
 
@@ -53,24 +53,24 @@ func (lb *LoadBalancer) CalculateShardLoad(shard *shardv1.ShardInstance) float64
 	if shard == nil {
 		return 0
 	}
-	
+
 	// If shard is not healthy or not running, return maximum load to avoid assignment
 	if !utils.IsShardHealthy(&shard.Status) || shard.Status.Phase != shardv1.ShardPhaseRunning {
 		return 1.0
 	}
-	
+
 	// If we have explicit load value, use it
 	if shard.Status.Load > 0 {
 		return shard.Status.Load
 	}
-	
+
 	// Calculate load based on assigned resources
 	resourceCount := len(shard.Status.AssignedResources)
 	resourceLoad := float64(resourceCount) / 1000.0 // Normalize assuming max 1000 resources
 	if resourceLoad > 1.0 {
 		resourceLoad = 1.0
 	}
-	
+
 	return resourceLoad
 }
 
@@ -79,7 +79,7 @@ func (lb *LoadBalancer) GetOptimalShard(shards []*shardv1.ShardInstance) (*shard
 	if len(shards) == 0 {
 		return nil, fmt.Errorf("no shards available")
 	}
-	
+
 	// Filter out unhealthy shards
 	healthyShards := make([]*shardv1.ShardInstance, 0, len(shards))
 	for _, shard := range shards {
@@ -87,16 +87,16 @@ func (lb *LoadBalancer) GetOptimalShard(shards []*shardv1.ShardInstance) (*shard
 			healthyShards = append(healthyShards, shard)
 		}
 	}
-	
+
 	if len(healthyShards) == 0 {
 		return nil, fmt.Errorf("no healthy shards available")
 	}
-	
+
 	// If only one shard, return it
 	if len(healthyShards) == 1 {
 		return healthyShards[0], nil
 	}
-	
+
 	// Use the appropriate strategy
 	switch lb.strategy {
 	case shardv1.ConsistentHashStrategy:
@@ -122,7 +122,7 @@ func (lb *LoadBalancer) getOptimalShardConsistentHash(shards []*shardv1.ShardIns
 func (lb *LoadBalancer) getOptimalShardRoundRobin(shards []*shardv1.ShardInstance) (*shardv1.ShardInstance, error) {
 	lb.mu.Lock()
 	defer lb.mu.Unlock()
-	
+
 	lb.lastShardIndex = (lb.lastShardIndex + 1) % len(shards)
 	return shards[lb.lastShardIndex], nil
 }
@@ -135,7 +135,7 @@ func (lb *LoadBalancer) getOptimalShardLeastLoaded(shards []*shardv1.ShardInstan
 		loadJ := lb.CalculateShardLoad(shards[j])
 		return loadI < loadJ
 	})
-	
+
 	// Return the least loaded shard
 	return shards[0], nil
 }
@@ -145,11 +145,11 @@ func (lb *LoadBalancer) ShouldRebalance(shards []*shardv1.ShardInstance) bool {
 	if len(shards) <= 1 {
 		return false
 	}
-	
+
 	// Calculate min and max load
 	var minLoad, maxLoad float64
 	minLoad = 1.0
-	
+
 	for _, shard := range shards {
 		load := lb.CalculateShardLoad(shard)
 		if load < minLoad {
@@ -159,7 +159,7 @@ func (lb *LoadBalancer) ShouldRebalance(shards []*shardv1.ShardInstance) bool {
 			maxLoad = load
 		}
 	}
-	
+
 	// Rebalance if the difference is more than 20%
 	return (maxLoad - minLoad) > 0.2
 }
@@ -169,28 +169,28 @@ func (lb *LoadBalancer) GenerateRebalancePlan(shards []*shardv1.ShardInstance) (
 	if len(shards) <= 1 {
 		return nil, fmt.Errorf("not enough shards to rebalance")
 	}
-	
+
 	// Sort shards by load
 	sort.Slice(shards, func(i, j int) bool {
 		loadI := lb.CalculateShardLoad(shards[i])
 		loadJ := lb.CalculateShardLoad(shards[j])
 		return loadI > loadJ // Sort in descending order
 	})
-	
+
 	// Get the most and least loaded shards
 	mostLoaded := shards[0]
 	leastLoaded := shards[len(shards)-1]
-	
+
 	// Calculate the load difference
 	mostLoadedLoad := lb.CalculateShardLoad(mostLoaded)
 	leastLoadedLoad := lb.CalculateShardLoad(leastLoaded)
 	loadDiff := mostLoadedLoad - leastLoadedLoad
-	
+
 	// If the difference is less than 20%, no need to rebalance
 	if loadDiff <= 0.2 {
 		return nil, fmt.Errorf("load difference is within acceptable range")
 	}
-	
+
 	// Calculate how many resources to migrate
 	// For simplicity, we'll migrate 10% of the resources from the most loaded shard
 	resourcesToMigrate := make([]string, 0)
@@ -200,13 +200,13 @@ func (lb *LoadBalancer) GenerateRebalancePlan(shards []*shardv1.ShardInstance) (
 		if migrateCount == 0 {
 			migrateCount = 1
 		}
-		
+
 		// Select resources to migrate
 		for i := 0; i < migrateCount && i < resourceCount; i++ {
 			resourcesToMigrate = append(resourcesToMigrate, mostLoaded.Status.AssignedResources[i])
 		}
 	}
-	
+
 	// Create the migration plan
 	plan := &shardv1.MigrationPlan{
 		SourceShard: mostLoaded.Spec.ShardID,
@@ -214,21 +214,20 @@ func (lb *LoadBalancer) GenerateRebalancePlan(shards []*shardv1.ShardInstance) (
 		Resources:   resourcesToMigrate,
 		Priority:    shardv1.MigrationPriorityMedium,
 	}
-	
+
 	return plan, nil
 }
-
 
 // AssignResourceToShard assigns a resource to a shard
 func (lb *LoadBalancer) AssignResourceToShard(resource *interfaces.Resource, shards []*shardv1.ShardInstance) (*shardv1.ShardInstance, error) {
 	if resource == nil {
 		return nil, fmt.Errorf("resource cannot be nil")
 	}
-	
+
 	if len(shards) == 0 {
 		return nil, fmt.Errorf("no shards available")
 	}
-	
+
 	// Filter out unhealthy shards
 	healthyShards := make([]*shardv1.ShardInstance, 0, len(shards))
 	for _, shard := range shards {
@@ -236,33 +235,33 @@ func (lb *LoadBalancer) AssignResourceToShard(resource *interfaces.Resource, sha
 			healthyShards = append(healthyShards, shard)
 		}
 	}
-	
+
 	if len(healthyShards) == 0 {
 		return nil, fmt.Errorf("no healthy shards available")
 	}
-	
+
 	// Use the appropriate strategy
 	switch lb.strategy {
 	case shardv1.ConsistentHashStrategy:
 		// Get the shard for this resource
 		shardID := lb.consistentHash.GetNode(resource.ID)
-		
+
 		// Find the shard with the matching ID
 		for _, shard := range healthyShards {
 			if shard.Spec.ShardID == shardID {
 				return shard, nil
 			}
 		}
-		
+
 		// Fallback to the least loaded shard if the designated shard is not available
 		return lb.getOptimalShardLeastLoaded(healthyShards)
-		
+
 	case shardv1.RoundRobinStrategy:
 		return lb.getOptimalShardRoundRobin(healthyShards)
-		
+
 	case shardv1.LeastLoadedStrategy:
 		return lb.getOptimalShardLeastLoaded(healthyShards)
-		
+
 	default:
 		return nil, fmt.Errorf("unsupported load balance strategy: %s", lb.strategy)
 	}
@@ -273,18 +272,18 @@ func (lb *LoadBalancer) UpdateShardNodes(shards []*shardv1.ShardInstance) error 
 	if lb.strategy != shardv1.ConsistentHashStrategy {
 		return nil // Only relevant for consistent hash strategy
 	}
-	
+
 	if lb.consistentHash == nil {
 		lb.consistentHash = utils.NewConsistentHash(10)
 	}
-	
+
 	// Get current nodes in the hash ring
 	currentNodes := lb.consistentHash.GetAllNodes()
 	currentNodeSet := make(map[string]bool)
 	for _, node := range currentNodes {
 		currentNodeSet[node] = true
 	}
-	
+
 	// Get new nodes from shards
 	newNodeSet := make(map[string]bool)
 	for _, shard := range shards {
@@ -292,33 +291,33 @@ func (lb *LoadBalancer) UpdateShardNodes(shards []*shardv1.ShardInstance) error 
 			newNodeSet[shard.Spec.ShardID] = true
 		}
 	}
-	
+
 	// Remove nodes that are no longer present
 	for node := range currentNodeSet {
 		if !newNodeSet[node] {
 			lb.consistentHash.RemoveNode(node)
 		}
 	}
-	
+
 	// Add new nodes
 	for node := range newNodeSet {
 		if !currentNodeSet[node] {
 			lb.consistentHash.AddNode(node)
 		}
 	}
-	
+
 	return nil
 }
 
 // GetLoadDistribution returns the current load distribution across shards
 func (lb *LoadBalancer) GetLoadDistribution(shards []*shardv1.ShardInstance) map[string]float64 {
 	distribution := make(map[string]float64)
-	
+
 	for _, shard := range shards {
 		load := lb.CalculateShardLoad(shard)
 		distribution[shard.Spec.ShardID] = load
 	}
-	
+
 	return distribution
 }
 
@@ -332,7 +331,7 @@ func (lb *LoadBalancer) SetStrategy(strategy shardv1.LoadBalanceStrategy, shards
 	if lb.strategy == strategy {
 		return // No change needed
 	}
-	
+
 	// Check if strategy is valid before setting it
 	switch strategy {
 	case shardv1.ConsistentHashStrategy:
@@ -366,9 +365,9 @@ func (lb *LoadBalancer) SetStrategyWithError(strategy shardv1.LoadBalanceStrateg
 	if lb.strategy == strategy {
 		return nil // No change needed
 	}
-	
+
 	lb.strategy = strategy
-	
+
 	// Initialize strategy-specific components
 	switch strategy {
 	case shardv1.ConsistentHashStrategy:
@@ -390,7 +389,7 @@ func (lb *LoadBalancer) SetStrategyWithError(strategy shardv1.LoadBalanceStrateg
 	default:
 		return fmt.Errorf("unsupported load balance strategy: %s", strategy)
 	}
-	
+
 	return nil
 }
 
@@ -404,10 +403,10 @@ func (lb *LoadBalancer) CalculateRebalanceScore(shards []*shardv1.ShardInstance)
 	if len(shards) <= 1 {
 		return 0.0
 	}
-	
+
 	loads := make([]float64, 0, len(shards))
 	var totalLoad float64
-	
+
 	for _, shard := range shards {
 		if utils.IsShardHealthy(&shard.Status) && shard.Status.Phase == shardv1.ShardPhaseRunning {
 			load := lb.CalculateShardLoad(shard)
@@ -415,23 +414,23 @@ func (lb *LoadBalancer) CalculateRebalanceScore(shards []*shardv1.ShardInstance)
 			totalLoad += load
 		}
 	}
-	
+
 	if len(loads) <= 1 {
 		return 0.0
 	}
-	
+
 	// Calculate standard deviation as a measure of imbalance
 	avgLoad := totalLoad / float64(len(loads))
 	var variance float64
-	
+
 	for _, load := range loads {
 		diff := load - avgLoad
 		variance += diff * diff
 	}
-	
+
 	variance /= float64(len(loads))
 	stdDev := variance // Using variance as approximation for simplicity
-	
+
 	// Normalize the score (higher score means more imbalance)
 	return stdDev
 }

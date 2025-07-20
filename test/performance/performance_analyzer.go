@@ -10,11 +10,11 @@ import (
 
 // PerformanceAnalyzer provides comprehensive performance analysis
 type PerformanceAnalyzer struct {
-	mu                sync.RWMutex
-	measurements      map[string]*PerformanceMeasurement
-	benchmarkResults  []*BenchmarkResult
-	optimizer         *PerformanceOptimizer
-	thresholds        *PerformanceThresholds
+	mu               sync.RWMutex
+	measurements     map[string]*PerformanceMeasurement
+	benchmarkResults []*BenchmarkResult
+	optimizer        *PerformanceOptimizer
+	thresholds       *PerformanceThresholds
 }
 
 // PerformanceMeasurement tracks detailed performance metrics for an operation
@@ -34,38 +34,38 @@ type PerformanceMeasurement struct {
 
 // BenchmarkResult contains results from a specific benchmark
 type BenchmarkResult struct {
-	Name              string
-	OperationsPerSec  float64
-	AvgLatencyMs      float64
-	P50LatencyMs      float64
-	P95LatencyMs      float64
-	P99LatencyMs      float64
-	MemoryAllocMB     float64
-	AllocsPerOp       int64
-	Timestamp         time.Time
-	Metadata          map[string]interface{}
+	Name             string
+	OperationsPerSec float64
+	AvgLatencyMs     float64
+	P50LatencyMs     float64
+	P95LatencyMs     float64
+	P99LatencyMs     float64
+	MemoryAllocMB    float64
+	AllocsPerOp      int64
+	Timestamp        time.Time
+	Metadata         map[string]interface{}
 }
 
 // DetailedPerformanceReport contains comprehensive performance analysis
 type DetailedPerformanceReport struct {
-	GeneratedAt       time.Time
-	TestDuration      time.Duration
-	SystemInfo        SystemInfo
-	Measurements      map[string]*PerformanceMeasurement
-	BenchmarkResults  []*BenchmarkResult
-	Recommendations   []OptimizationRecommendation
-	OverallScore      float64
+	GeneratedAt        time.Time
+	TestDuration       time.Duration
+	SystemInfo         SystemInfo
+	Measurements       map[string]*PerformanceMeasurement
+	BenchmarkResults   []*BenchmarkResult
+	Recommendations    []OptimizationRecommendation
+	OverallScore       float64
 	BottleneckAnalysis *BottleneckAnalysis
 }
 
 // SystemInfo contains system information
 type SystemInfo struct {
-	GoVersion      string
-	NumCPU         int
-	GOMAXPROCS     int
-	MemoryStats    runtime.MemStats
-	OSInfo         string
-	ArchInfo       string
+	GoVersion   string
+	NumCPU      int
+	GOMAXPROCS  int
+	MemoryStats runtime.MemStats
+	OSInfo      string
+	ArchInfo    string
 }
 
 // BottleneckAnalysis identifies performance bottlenecks
@@ -84,11 +84,11 @@ func NewPerformanceAnalyzer() *PerformanceAnalyzer {
 		benchmarkResults: make([]*BenchmarkResult, 0),
 		optimizer:        NewPerformanceOptimizer(),
 		thresholds: &PerformanceThresholds{
-			MaxAvgLatencyMs:     50.0,
-			MaxErrorRate:        0.01,
-			MaxMemoryUsageMB:    256.0,
-			MaxCPUUsagePercent:  70.0,
-			MinThroughputRPS:    100.0,
+			MaxAvgLatencyMs:    50.0,
+			MaxErrorRate:       0.01,
+			MaxMemoryUsageMB:   256.0,
+			MaxCPUUsagePercent: 70.0,
+			MinThroughputRPS:   100.0,
 		},
 	}
 }
@@ -165,11 +165,11 @@ func (pa *PerformanceAnalyzer) AnalyzeDetailedPerformance() *DetailedPerformance
 	defer pa.mu.RUnlock()
 
 	report := &DetailedPerformanceReport{
-		GeneratedAt:       time.Now(),
-		SystemInfo:        pa.getSystemInfo(),
-		Measurements:      make(map[string]*PerformanceMeasurement),
-		BenchmarkResults:  make([]*BenchmarkResult, len(pa.benchmarkResults)),
-		Recommendations:   pa.optimizer.AnalyzePerformance(),
+		GeneratedAt:        time.Now(),
+		SystemInfo:         pa.getSystemInfo(),
+		Measurements:       make(map[string]*PerformanceMeasurement),
+		BenchmarkResults:   make([]*BenchmarkResult, len(pa.benchmarkResults)),
+		Recommendations:    pa.optimizer.AnalyzePerformance(),
 		BottleneckAnalysis: pa.analyzeBottlenecks(),
 	}
 
@@ -273,15 +273,15 @@ func (pa *PerformanceAnalyzer) analyzeBottlenecks() *BottleneckAnalysis {
 	// Check for resource constraints
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
-	
+
 	memoryUsageMB := float64(memStats.Alloc) / 1024 / 1024
 	if memoryUsageMB > pa.thresholds.MaxMemoryUsageMB {
-		analysis.ResourceConstraints = append(analysis.ResourceConstraints, 
+		analysis.ResourceConstraints = append(analysis.ResourceConstraints,
 			fmt.Sprintf("High memory usage: %.2f MB", memoryUsageMB))
 	}
 
 	if memStats.NumGC > 100 {
-		analysis.ResourceConstraints = append(analysis.ResourceConstraints, 
+		analysis.ResourceConstraints = append(analysis.ResourceConstraints,
 			fmt.Sprintf("Frequent garbage collection: %d cycles", memStats.NumGC))
 	}
 
@@ -302,7 +302,7 @@ func (pa *PerformanceAnalyzer) analyzeBottlenecks() *BottleneckAnalysis {
 // calculateOverallScore calculates an overall performance score (0-100)
 func (pa *PerformanceAnalyzer) calculateOverallScore() float64 {
 	score := 100.0
-	
+
 	// Deduct points for slow operations
 	for _, measurement := range pa.measurements {
 		if measurement.SampleCount > 0 {
@@ -310,7 +310,7 @@ func (pa *PerformanceAnalyzer) calculateOverallScore() float64 {
 			if avgMs > pa.thresholds.MaxAvgLatencyMs {
 				score -= 10.0
 			}
-			
+
 			errorRate := float64(measurement.ErrorCount) / float64(measurement.SampleCount)
 			if errorRate > pa.thresholds.MaxErrorRate {
 				score -= 15.0
@@ -321,7 +321,7 @@ func (pa *PerformanceAnalyzer) calculateOverallScore() float64 {
 	// Deduct points for resource usage
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
-	
+
 	memoryUsageMB := float64(memStats.Alloc) / 1024 / 1024
 	if memoryUsageMB > pa.thresholds.MaxMemoryUsageMB {
 		score -= 20.0
@@ -472,7 +472,7 @@ func (dpr *DetailedPerformanceReport) String() string {
 		if measurement.SampleCount > 0 {
 			avgMs := float64(measurement.TotalDuration.Nanoseconds()) / float64(measurement.SampleCount) / 1e6
 			errorRate := float64(measurement.ErrorCount) / float64(measurement.SampleCount) * 100
-			result += fmt.Sprintf("  %s: %d samples, avg %.2fms, error rate %.2f%%\n", 
+			result += fmt.Sprintf("  %s: %d samples, avg %.2fms, error rate %.2f%%\n",
 				name, measurement.SampleCount, avgMs, errorRate)
 		}
 	}

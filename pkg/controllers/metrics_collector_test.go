@@ -18,7 +18,7 @@ import (
 func TestNewMetricsCollector(t *testing.T) {
 	cfg := config.DefaultConfig().Metrics
 	logger := logrus.New()
-	
+
 	mc, err := NewMetricsCollector(cfg, logger)
 	require.NoError(t, err)
 	assert.NotNil(t, mc)
@@ -50,13 +50,13 @@ func TestMetricsCollector_CollectShardMetrics(t *testing.T) {
 	// Verify metrics were recorded
 	metricFamilies, err := mc.GetRegistry().Gather()
 	require.NoError(t, err)
-	
+
 	// Check that we have the expected metrics
 	metricNames := make(map[string]bool)
 	for _, mf := range metricFamilies {
 		metricNames[*mf.Name] = true
 	}
-	
+
 	assert.True(t, metricNames["shard_controller_shard_load"])
 	assert.True(t, metricNames["shard_controller_shard_resources"])
 	assert.True(t, metricNames["shard_controller_shard_status"])
@@ -97,7 +97,7 @@ func TestMetricsCollector_CollectSystemMetrics(t *testing.T) {
 	// Verify system metrics were recorded
 	metricFamilies, err := mc.GetRegistry().Gather()
 	require.NoError(t, err)
-	
+
 	// Find the total shards metric
 	var totalShardsMetric *dto.MetricFamily
 	for _, mf := range metricFamilies {
@@ -106,7 +106,7 @@ func TestMetricsCollector_CollectSystemMetrics(t *testing.T) {
 			break
 		}
 	}
-	
+
 	require.NotNil(t, totalShardsMetric)
 	assert.Equal(t, float64(2), *totalShardsMetric.Metric[0].Gauge.Value)
 }
@@ -122,7 +122,7 @@ func TestMetricsCollector_RecordMigration(t *testing.T) {
 	// Verify migration metrics were recorded
 	metricFamilies, err := mc.GetRegistry().Gather()
 	require.NoError(t, err)
-	
+
 	// Check migration counter
 	var migrationCounter *dto.MetricFamily
 	for _, mf := range metricFamilies {
@@ -131,7 +131,7 @@ func TestMetricsCollector_RecordMigration(t *testing.T) {
 			break
 		}
 	}
-	
+
 	require.NotNil(t, migrationCounter)
 	assert.Equal(t, float64(1), *migrationCounter.Metric[0].Counter.Value)
 }
@@ -147,7 +147,7 @@ func TestMetricsCollector_RecordScaleOperation(t *testing.T) {
 	// Verify scale operation metrics were recorded
 	metricFamilies, err := mc.GetRegistry().Gather()
 	require.NoError(t, err)
-	
+
 	// Check scale operation counter
 	var scaleCounter *dto.MetricFamily
 	for _, mf := range metricFamilies {
@@ -156,7 +156,7 @@ func TestMetricsCollector_RecordScaleOperation(t *testing.T) {
 			break
 		}
 	}
-	
+
 	require.NotNil(t, scaleCounter)
 	assert.Equal(t, float64(1), *scaleCounter.Metric[0].Counter.Value)
 }
@@ -172,7 +172,7 @@ func TestMetricsCollector_RecordError(t *testing.T) {
 	// Verify error metrics were recorded
 	metricFamilies, err := mc.GetRegistry().Gather()
 	require.NoError(t, err)
-	
+
 	// Check error counter
 	var errorCounter *dto.MetricFamily
 	for _, mf := range metricFamilies {
@@ -181,7 +181,7 @@ func TestMetricsCollector_RecordError(t *testing.T) {
 			break
 		}
 	}
-	
+
 	require.NotNil(t, errorCounter)
 	assert.Equal(t, float64(1), *errorCounter.Metric[0].Counter.Value)
 }
@@ -197,7 +197,7 @@ func TestMetricsCollector_RecordOperationDuration(t *testing.T) {
 	// Verify operation duration metrics were recorded
 	metricFamilies, err := mc.GetRegistry().Gather()
 	require.NoError(t, err)
-	
+
 	// Check operation duration histogram
 	var durationHistogram *dto.MetricFamily
 	for _, mf := range metricFamilies {
@@ -206,7 +206,7 @@ func TestMetricsCollector_RecordOperationDuration(t *testing.T) {
 			break
 		}
 	}
-	
+
 	require.NotNil(t, durationHistogram)
 	assert.Equal(t, uint64(1), *durationHistogram.Metric[0].Histogram.SampleCount)
 }
@@ -222,7 +222,7 @@ func TestMetricsCollector_UpdateQueueLength(t *testing.T) {
 	// Verify queue length metrics were recorded
 	metricFamilies, err := mc.GetRegistry().Gather()
 	require.NoError(t, err)
-	
+
 	// Check queue length gauge
 	var queueGauge *dto.MetricFamily
 	for _, mf := range metricFamilies {
@@ -231,7 +231,7 @@ func TestMetricsCollector_UpdateQueueLength(t *testing.T) {
 			break
 		}
 	}
-	
+
 	require.NotNil(t, queueGauge)
 	assert.Equal(t, float64(5), *queueGauge.Metric[0].Gauge.Value)
 }
@@ -255,10 +255,10 @@ func TestMetricsCollector_StartMetricsServer(t *testing.T) {
 
 	// Give server time to start
 	time.Sleep(100 * time.Millisecond)
-	
+
 	// Cancel context to shut down server
 	cancel()
-	
+
 	// Give server time to shut down
 	time.Sleep(100 * time.Millisecond)
 }

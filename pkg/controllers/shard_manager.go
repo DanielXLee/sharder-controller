@@ -20,28 +20,28 @@ import (
 
 // ShardManager implements the ShardManager interface with Leader Election
 type ShardManager struct {
-	client          client.Client
-	kubeClient      kubernetes.Interface
-	loadBalancer    interfaces.LoadBalancer
-	healthChecker   interfaces.HealthChecker
+	client           client.Client
+	kubeClient       kubernetes.Interface
+	loadBalancer     interfaces.LoadBalancer
+	healthChecker    interfaces.HealthChecker
 	resourceMigrator interfaces.ResourceMigrator
-	configManager   interfaces.ConfigManager
+	configManager    interfaces.ConfigManager
 	metricsCollector interfaces.MetricsCollector
-	alertManager    interfaces.AlertManager
+	alertManager     interfaces.AlertManager
 	structuredLogger interfaces.StructuredLogger
-	config          *config.Config
-	
+	config           *config.Config
+
 	// Leader election
-	leaderElector   *leaderelection.LeaderElector
-	isLeader        bool
-	leaderMu        sync.RWMutex
-	
+	leaderElector *leaderelection.LeaderElector
+	isLeader      bool
+	leaderMu      sync.RWMutex
+
 	// State management
-	mu             sync.RWMutex
-	shards         map[string]*shardv1.ShardInstance
-	running        bool
-	stopCh         chan struct{}
-	
+	mu      sync.RWMutex
+	shards  map[string]*shardv1.ShardInstance
+	running bool
+	stopCh  chan struct{}
+
 	// Monitoring and decision making
 	lastScaleDecision time.Time
 	scaleDecisionMu   sync.RWMutex
@@ -90,18 +90,18 @@ func NewShardManager(
 	}
 
 	sm := &ShardManager{
-		client:          client,
-		kubeClient:      kubeClient,
-		loadBalancer:    loadBalancer,
-		healthChecker:   healthChecker,
+		client:           client,
+		kubeClient:       kubeClient,
+		loadBalancer:     loadBalancer,
+		healthChecker:    healthChecker,
 		resourceMigrator: resourceMigrator,
-		configManager:   configManager,
+		configManager:    configManager,
 		metricsCollector: metricsCollector,
-		alertManager:    alertManager,
+		alertManager:     alertManager,
 		structuredLogger: structuredLogger,
-		config:          cfg,
-		shards:          make(map[string]*shardv1.ShardInstance),
-		stopCh:          make(chan struct{}),
+		config:           cfg,
+		shards:           make(map[string]*shardv1.ShardInstance),
+		stopCh:           make(chan struct{}),
 	}
 
 	// Initialize leader election
@@ -445,7 +445,7 @@ func (sm *ShardManager) runHealthCheckLoop(ctx context.Context) {
 // makeScalingDecision makes scaling decisions based on current load and configuration
 func (sm *ShardManager) makeScalingDecision(ctx context.Context) error {
 	logger := log.FromContext(ctx)
-	
+
 	// Prevent too frequent scaling decisions
 	sm.scaleDecisionMu.Lock()
 	if time.Since(sm.lastScaleDecision) < 2*time.Minute {
@@ -472,7 +472,7 @@ func (sm *ShardManager) makeScalingDecision(ctx context.Context) error {
 	totalLoad := sm.calculateTotalLoad(shards)
 	currentCount := len(shards)
 
-	logger.Info("Scaling decision metrics", 
+	logger.Info("Scaling decision metrics",
 		"currentShards", currentCount,
 		"healthyShards", healthyShards,
 		"totalLoad", totalLoad,
@@ -484,10 +484,10 @@ func (sm *ShardManager) makeScalingDecision(ctx context.Context) error {
 		// Scale up
 		targetCount := currentCount + 1
 		logger.Info("Scaling up", "from", currentCount, "to", targetCount)
-		
+
 		// Log scale event
 		sm.structuredLogger.LogScaleEvent(ctx, "scale_up", currentCount, targetCount, "high_load", "initiated")
-		
+
 		if err := sm.ScaleUp(ctx, targetCount); err != nil {
 			// Log error and send alert
 			sm.structuredLogger.LogErrorEvent(ctx, "shard_manager", "scale_up", err, map[string]interface{}{
@@ -497,24 +497,24 @@ func (sm *ShardManager) makeScalingDecision(ctx context.Context) error {
 			sm.metricsCollector.RecordError("shard_manager", "scale_up_failed")
 			return fmt.Errorf("failed to scale up: %w", err)
 		}
-		
+
 		// Record successful scale operation
 		sm.metricsCollector.RecordScaleOperation("scale_up", "success")
 		sm.structuredLogger.LogScaleEvent(ctx, "scale_up", currentCount, targetCount, "high_load", "success")
-		
+
 		// Send alert for scale event
 		if err := sm.alertManager.AlertScaleEvent(ctx, "scale_up", currentCount, targetCount, "high_load"); err != nil {
 			logger.Error(err, "Failed to send scale up alert")
 		}
-		
+
 	} else if totalLoad < config.Spec.ScaleDownThreshold && currentCount > config.Spec.MinShards {
 		// Scale down
 		targetCount := currentCount - 1
 		logger.Info("Scaling down", "from", currentCount, "to", targetCount)
-		
+
 		// Log scale event
 		sm.structuredLogger.LogScaleEvent(ctx, "scale_down", currentCount, targetCount, "low_load", "initiated")
-		
+
 		if err := sm.ScaleDownGracefully(ctx, targetCount); err != nil {
 			// Log error and send alert
 			sm.structuredLogger.LogErrorEvent(ctx, "shard_manager", "scale_down", err, map[string]interface{}{
@@ -524,11 +524,11 @@ func (sm *ShardManager) makeScalingDecision(ctx context.Context) error {
 			sm.metricsCollector.RecordError("shard_manager", "scale_down_failed")
 			return fmt.Errorf("failed to scale down: %w", err)
 		}
-		
+
 		// Record successful scale operation
 		sm.metricsCollector.RecordScaleOperation("scale_down", "success")
 		sm.structuredLogger.LogScaleEvent(ctx, "scale_down", currentCount, targetCount, "low_load", "success")
-		
+
 		// Send alert for scale event
 		if err := sm.alertManager.AlertScaleEvent(ctx, "scale_down", currentCount, targetCount, "low_load"); err != nil {
 			logger.Error(err, "Failed to send scale down alert")
@@ -552,7 +552,7 @@ func (sm *ShardManager) monitorShards(ctx context.Context) error {
 	sm.shards = make(map[string]*shardv1.ShardInstance)
 	for _, shard := range shards {
 		sm.shards[shard.Spec.ShardID] = shard
-		
+
 		// Collect metrics for each shard
 		if err := sm.metricsCollector.CollectShardMetrics(shard); err != nil {
 			log.Log.Error(err, "Failed to collect metrics for shard", "shardId", shard.Spec.ShardID)
@@ -562,7 +562,7 @@ func (sm *ShardManager) monitorShards(ctx context.Context) error {
 	// Record overall metrics
 	healthyCount := sm.countHealthyShards(shards)
 	totalLoad := sm.calculateTotalLoad(shards)
-	
+
 	sm.metricsCollector.RecordCustomMetric("shard_total_count", float64(len(shards)), nil)
 	sm.metricsCollector.RecordCustomMetric("shard_healthy_count", float64(healthyCount), nil)
 	sm.metricsCollector.RecordCustomMetric("shard_total_load", totalLoad, nil)
@@ -611,29 +611,29 @@ func (sm *ShardManager) checkAndUpdateShardHealth(ctx context.Context, shard *sh
 	sm.structuredLogger.LogHealthEvent(ctx, shard.Spec.ShardID, healthStatus.Healthy, 0, healthStatus.Message)
 
 	// Update shard status if health changed
-	if shard.Status.HealthStatus == nil || 
+	if shard.Status.HealthStatus == nil ||
 		shard.Status.HealthStatus.Healthy != healthStatus.Healthy {
-		
+
 		previousHealthy := shard.Status.HealthStatus != nil && shard.Status.HealthStatus.Healthy
 		shard.Status.HealthStatus = healthStatus
-		
+
 		// Update phase based on health
 		if !healthStatus.Healthy && shard.Status.Phase == shardv1.ShardPhaseRunning {
 			if err := shard.TransitionTo(shardv1.ShardPhaseFailed); err != nil {
 				return fmt.Errorf("failed to transition shard to failed state: %w", err)
 			}
-			
+
 			// Log shard failure event
 			sm.structuredLogger.LogShardEvent(ctx, "shard_failed", shard.Spec.ShardID, map[string]interface{}{
-				"reason": healthStatus.Message,
+				"reason":           healthStatus.Message,
 				"phase_transition": "running_to_failed",
 			})
-			
+
 			// Send alert for shard failure
 			if err := sm.alertManager.AlertShardFailure(ctx, shard.Spec.ShardID, healthStatus.Message); err != nil {
 				log.Log.Error(err, "Failed to send shard failure alert", "shardId", shard.Spec.ShardID)
 			}
-			
+
 			// Handle failed shard
 			if err := sm.HandleFailedShard(ctx, shard.Spec.ShardID); err != nil {
 				sm.structuredLogger.LogErrorEvent(ctx, "shard_manager", "handle_failed_shard", err, map[string]interface{}{
@@ -645,14 +645,14 @@ func (sm *ShardManager) checkAndUpdateShardHealth(ctx context.Context, shard *sh
 			if err := shard.TransitionTo(shardv1.ShardPhaseRunning); err != nil {
 				return fmt.Errorf("failed to transition shard to running state: %w", err)
 			}
-			
+
 			// Log shard recovery event
 			sm.structuredLogger.LogShardEvent(ctx, "shard_recovered", shard.Spec.ShardID, map[string]interface{}{
 				"phase_transition": "failed_to_running",
-				"was_healthy": previousHealthy,
+				"was_healthy":      previousHealthy,
 			})
 		}
-		
+
 		// Update the shard in Kubernetes
 		if err := sm.client.Status().Update(ctx, shard); err != nil {
 			sm.structuredLogger.LogErrorEvent(ctx, "shard_manager", "update_shard_status", err, map[string]interface{}{
@@ -742,7 +742,7 @@ func (sm *ShardManager) migrateShardResources(ctx context.Context, sourceShard *
 
 	targetShards := make([]*shardv1.ShardInstance, 0)
 	for _, shard := range allShards {
-		if shard.Spec.ShardID != sourceShard.Spec.ShardID && 
+		if shard.Spec.ShardID != sourceShard.Spec.ShardID &&
 			shard.IsHealthy() && shard.IsActive() {
 			targetShards = append(targetShards, shard)
 		}
@@ -764,13 +764,13 @@ func (sm *ShardManager) migrateShardResources(ctx context.Context, sourceShard *
 	// Distribute resources among target shards
 	for i, resource := range resources {
 		targetShard := targetShards[i%len(targetShards)]
-		
+
 		startTime := time.Now()
-		
+
 		plan, err := sm.resourceMigrator.CreateMigrationPlan(
-			ctx, 
-			sourceShard.Spec.ShardID, 
-			targetShard.Spec.ShardID, 
+			ctx,
+			sourceShard.Spec.ShardID,
+			targetShard.Spec.ShardID,
 			[]*interfaces.Resource{resource},
 		)
 		if err != nil {
@@ -784,19 +784,19 @@ func (sm *ShardManager) migrateShardResources(ctx context.Context, sourceShard *
 
 		if err := sm.resourceMigrator.ExecuteMigration(ctx, plan); err != nil {
 			duration := time.Since(startTime)
-			
+
 			// Log migration failure
 			sm.structuredLogger.LogMigrationEvent(ctx, sourceShard.Spec.ShardID, targetShard.Spec.ShardID, 1, "failed", duration)
 			sm.metricsCollector.RecordMigration(sourceShard.Spec.ShardID, targetShard.Spec.ShardID, "failed", duration)
-			
+
 			// Send migration failure alert
 			if err := sm.alertManager.AlertMigrationFailure(ctx, sourceShard.Spec.ShardID, targetShard.Spec.ShardID, 1, err.Error()); err != nil {
 				log.Log.Error(err, "Failed to send migration failure alert")
 			}
-			
+
 			return fmt.Errorf("failed to execute migration: %w", err)
 		}
-		
+
 		// Record successful migration
 		duration := time.Since(startTime)
 		sm.structuredLogger.LogMigrationEvent(ctx, sourceShard.Spec.ShardID, targetShard.Spec.ShardID, 1, "success", duration)
@@ -818,7 +818,7 @@ func (sm *ShardManager) selectShardsForRemoval(shards []*shardv1.ShardInstance, 
 
 	// Simple selection: prefer unhealthy shards, then least loaded
 	selected := make([]*shardv1.ShardInstance, 0, count)
-	
+
 	// First, select unhealthy shards
 	for _, shard := range sortedShards {
 		if len(selected) >= count {
@@ -873,17 +873,17 @@ func (sm *ShardManager) calculateTotalLoad(shards []*shardv1.ShardInstance) floa
 	for _, shard := range shards {
 		totalLoad += shard.Status.Load
 	}
-	
+
 	return totalLoad / float64(len(shards)) // Return average load
 }
 
 // Enhanced CreateShard with proper lifecycle management
 func (sm *ShardManager) CreateShardWithLifecycle(ctx context.Context, config *shardv1.ShardConfig) (*shardv1.ShardInstance, error) {
 	logger := log.FromContext(ctx)
-	
+
 	// Generate unique shard ID
 	shardId := fmt.Sprintf("shard-%d", time.Now().UnixNano())
-	
+
 	logger.Info("Creating new shard", "shardId", shardId)
 
 	// Calculate hash range for the new shard
@@ -900,9 +900,9 @@ func (sm *ShardManager) CreateShardWithLifecycle(ctx context.Context, config *sh
 			Name:      shardId,
 			Namespace: sm.config.Namespace,
 			Labels: map[string]string{
-				"app":                          "shard-controller",
-				"shard.io/shard-id":           shardId,
-				"shard.io/managed-by":         "shard-manager",
+				"app":                 "shard-controller",
+				"shard.io/shard-id":   shardId,
+				"shard.io/managed-by": "shard-manager",
 			},
 		},
 		Spec: shardv1.ShardInstanceSpec{
@@ -938,7 +938,7 @@ func (sm *ShardManager) CreateShardWithLifecycle(ctx context.Context, config *sh
 func (sm *ShardManager) checkSystemOverload(ctx context.Context, shards []*shardv1.ShardInstance, totalLoad float64) error {
 	// Define overload threshold (configurable in production)
 	overloadThreshold := 0.9
-	
+
 	// Check if system is overloaded
 	if totalLoad > overloadThreshold {
 		// Log system overload event
@@ -948,23 +948,23 @@ func (sm *ShardManager) checkSystemOverload(ctx context.Context, shards []*shard
 			"shard_count":    len(shards),
 			"healthy_shards": sm.countHealthyShards(shards),
 		})
-		
+
 		// Send system overload alert
 		if err := sm.alertManager.AlertSystemOverload(ctx, totalLoad, overloadThreshold, len(shards)); err != nil {
 			return fmt.Errorf("failed to send system overload alert: %w", err)
 		}
-		
+
 		// Record overload metric
 		sm.metricsCollector.RecordCustomMetric("system_overload_events_total", 1, map[string]string{
 			"severity": "critical",
 		})
 	}
-	
+
 	// Check for high error rates in components
 	if err := sm.checkComponentErrorRates(ctx); err != nil {
 		return fmt.Errorf("failed to check component error rates: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -972,30 +972,30 @@ func (sm *ShardManager) checkSystemOverload(ctx context.Context, shards []*shard
 func (sm *ShardManager) checkComponentErrorRates(ctx context.Context) error {
 	// This is a simplified implementation
 	// In production, this would analyze actual error metrics from Prometheus
-	
+
 	components := []string{"shard_manager", "health_checker", "resource_migrator", "load_balancer"}
 	errorRateThreshold := 0.05 // 5% error rate threshold
-	
+
 	for _, component := range components {
 		// Simulate error rate calculation (in production, query from metrics)
 		// This would typically query Prometheus for actual error rates
 		errorRate := 0.02 // Placeholder - would be calculated from actual metrics
-		
+
 		if errorRate > errorRateThreshold {
 			// Send high error rate alert
 			if err := sm.alertManager.AlertHighErrorRate(ctx, component, errorRate, errorRateThreshold); err != nil {
 				log.Log.Error(err, "Failed to send high error rate alert", "component", component)
 			}
-			
+
 			// Log high error rate event
 			sm.structuredLogger.LogSystemEvent(ctx, "high_error_rate", "warning", map[string]interface{}{
-				"component":   component,
-				"error_rate":  errorRate,
-				"threshold":   errorRateThreshold,
+				"component":  component,
+				"error_rate": errorRate,
+				"threshold":  errorRateThreshold,
 			})
 		}
 	}
-	
+
 	return nil
 }
 
@@ -1005,11 +1005,11 @@ func (sm *ShardManager) calculateHashRangeForNewShard(existingShards []*shardv1.
 	// In a production system, this would be more sophisticated
 	totalShards := len(existingShards) + 1
 	rangeSize := uint32(0xFFFFFFFF) / uint32(totalShards)
-	
+
 	shardIndex := len(existingShards)
 	start := uint32(shardIndex) * rangeSize
 	end := start + rangeSize - 1
-	
+
 	if shardIndex == totalShards-1 {
 		end = 0xFFFFFFFF // Last shard gets remainder
 	}

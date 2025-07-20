@@ -8,6 +8,7 @@ GO_VET=$(GO_CMD) vet
 GO_RUN=$(GO_CMD) run
 
 # Project variables
+DIST_DIR=dist
 BINARY_DIR=bin
 MANAGER_BINARY=manager
 WORKER_BINARY=worker
@@ -23,11 +24,11 @@ build: manager worker
 
 manager:
 	@echo "Building manager..."
-	@$(GO_BUILD) -o $(BINARY_DIR)/$(MANAGER_BINARY) $(MANAGER_MAIN)
+	@$(GO_BUILD) -o $(DIST_DIR)/$(MANAGER_BINARY) $(MANAGER_MAIN)
 
 worker:
 	@echo "Building worker..."
-	@$(GO_BUILD) -o $(BINARY_DIR)/$(WORKER_BINARY) $(WORKER_MAIN)
+	@$(GO_BUILD) -o $(DIST_DIR)/$(WORKER_BINARY) $(WORKER_MAIN)
 
 # Run the manager
 run:
@@ -106,6 +107,86 @@ coverage:
 	@$(GO_CMD) tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report generated: coverage.html"
 
+# Docker variables
+REGISTRY ?= shard-controller
+TAG ?= latest
+VERSION ?= $(shell git describe --tags --always --dirty)
+COMMIT ?= $(shell git rev-parse HEAD)
+BUILD_DATE ?= $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
+
+# Docker build targets
+.PHONY: docker-build docker-build-manager docker-build-worker docker-push docker-push-manager docker-push-worker
+
+# Build all Docker images
+docker-build: docker-build-manager docker-build-worker
+
+# Build manager Docker image
+docker-build-manager:
+	@echo "Building manager Docker image..."
+	@docker build \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg COMMIT=$(COMMIT) \
+		--build-arg BUILD_DATE=$(BUILD_DATE) \
+		-f Dockerfile.manager \
+		-t $(REGISTRY)/manager:$(TAG) \
+		-t $(REGISTRY)/manager:$(VERSION) \
+		.
+
+# Build worker Docker image
+docker-build-worker:
+	@echo "Building worker Docker image..."
+	@docker build \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg COMMIT=$(COMMIT) \
+		--build-arg BUILD_DATE=$(BUILD_DATE) \
+		-f Dockerfile.worker \
+		-t $(REGISTRY)/worker:$(TAG) \
+		-t $(REGISTRY)/worker:$(VERSION) \
+		.
+
+# Build using multi-stage Dockerfile
+docker-build-multi:
+	@echo "Building manager image using multi-stage Dockerfile..."
+	@docker build \
+		--build-arg COMPONENT=manager \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg COMMIT=$(COMMIT) \
+		--build-arg BUILD_DATE=$(BUILD_DATE) \
+		-t $(REGISTRY)/manager:$(TAG) \
+		.
+	@echo "Building worker image using multi-stage Dockerfile..."
+	@docker build \
+		--build-arg COMPONENT=worker \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg COMMIT=$(COMMIT) \
+		--build-arg BUILD_DATE=$(BUILD_DATE) \
+		-t $(REGISTRY)/worker:$(TAG) \
+		.
+
+# Push all Docker images
+docker-push: docker-push-manager docker-push-worker
+
+# Push manager Docker image
+docker-push-manager:
+	@echo "Pushing manager Docker image..."
+	@docker push $(REGISTRY)/manager:$(TAG)
+	@docker push $(REGISTRY)/manager:$(VERSION)
+
+# Push worker Docker image
+docker-push-worker:
+	@echo "Pushing worker Docker image..."
+	@docker push $(REGISTRY)/worker:$(TAG)
+	@docker push $(REGISTRY)/worker:$(VERSION)
+
+# Build and push all images
+docker-release: docker-build docker-push
+
+# Load images into kind cluster
+kind-load:
+	@echo "Loading images into kind cluster..."
+	@kind load docker-image $(REGISTRY)/manager:$(TAG) --name shard-controller-demo || true
+	@kind load docker-image $(REGISTRY)/worker:$(TAG) --name shard-controller-demo || true
+
 # Clean build artifacts
 clean:
 	@echo "Cleaning up..."
@@ -113,4 +194,10 @@ clean:
 	@if [ -f $(BINARY_DIR)/$(WORKER_BINARY) ]; then rm $(BINARY_DIR)/$(WORKER_BINARY); fi
 	@if [ -f coverage.out ]; then rm coverage.out; fi
 	@if [ -f coverage.html ]; then rm coverage.html; fi
+
+# Clean Docker images
+docker-clean:
+	@echo "Cleaning Docker images..."
+	@docker rmi $(REGISTRY)/manager:$(TAG) $(REGISTRY)/manager:$(VERSION) || true
+	@docker rmi $(REGISTRY)/worker:$(TAG) $(REGISTRY)/worker:$(VERSION) || true
 

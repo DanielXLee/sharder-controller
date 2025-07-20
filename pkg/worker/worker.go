@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"k8s.io/client-go/kubernetes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -30,26 +30,26 @@ type WorkerShard struct {
 	mu                sync.RWMutex
 	assignedResources map[string]*interfaces.Resource
 	resourceQueue     chan *interfaces.Resource
-	
+
 	// State management
-	running     bool
-	draining    bool
-	stopCh      chan struct{}
-	doneCh      chan struct{}
+	running      bool
+	draining     bool
+	stopCh       chan struct{}
+	doneCh       chan struct{}
 	healthTicker *time.Ticker
-	
+
 	// Metrics
 	loadMetrics *shardv1.LoadMetrics
-	
+
 	// Communication channels for inter-shard communication
 	migrationCh chan *migrationRequest
 }
 
 // migrationRequest represents a resource migration request
 type migrationRequest struct {
-	resources    []*interfaces.Resource
-	targetShard  string
-	responseCh   chan error
+	resources   []*interfaces.Resource
+	targetShard string
+	responseCh  chan error
 }
 
 // NewWorkerShard creates a new WorkerShard
@@ -538,7 +538,7 @@ func (ws *WorkerShard) updateHeartbeat(ctx context.Context) error {
 
 	// Update heartbeat and health status
 	shard.UpdateHeartbeat()
-	
+
 	// Update health status
 	healthStatus, err := ws.ReportHealth(ctx)
 	if err != nil {

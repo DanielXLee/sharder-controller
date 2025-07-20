@@ -20,12 +20,12 @@ import (
 // TestBasicPerformance tests basic performance characteristics
 func TestBasicPerformance(t *testing.T) {
 	ctx := context.Background()
-	
+
 	// Setup test environment
 	scheme := setupScheme()
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 	fakeKubeClient := kubefake.NewSimpleClientset()
-	
+
 	// Create mock dependencies
 	loadBalancer := &MockLoadBalancer{}
 	healthChecker := &MockHealthChecker{}
@@ -58,10 +58,10 @@ func TestBasicPerformance(t *testing.T) {
 	start := time.Now()
 	_, err = shardManager.CreateShard(ctx, shardConfig)
 	duration := time.Since(start)
-	
+
 	require.NoError(t, err)
 	t.Logf("Shard creation took: %v", duration)
-	
+
 	// Should be reasonably fast in test environment
 	require.Less(t, duration, 1*time.Second, "Shard creation should be fast")
 }
@@ -69,12 +69,12 @@ func TestBasicPerformance(t *testing.T) {
 // BenchmarkShardCreation benchmarks shard creation
 func BenchmarkShardCreation(b *testing.B) {
 	ctx := context.Background()
-	
+
 	// Setup test environment
 	scheme := setupScheme()
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 	fakeKubeClient := kubefake.NewSimpleClientset()
-	
+
 	// Create mock dependencies
 	loadBalancer := &MockLoadBalancer{}
 	healthChecker := &MockHealthChecker{}
@@ -117,12 +117,12 @@ func BenchmarkShardCreation(b *testing.B) {
 // BenchmarkResourceAssignment benchmarks resource assignment to shards
 func BenchmarkResourceAssignment(b *testing.B) {
 	ctx := context.Background()
-	
+
 	// Setup test environment
 	scheme := setupScheme()
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 	fakeKubeClient := kubefake.NewSimpleClientset()
-	
+
 	// Create mock dependencies
 	loadBalancer := &MockLoadBalancer{}
 	healthChecker := &MockHealthChecker{}
@@ -151,7 +151,7 @@ func BenchmarkResourceAssignment(b *testing.B) {
 			LoadBalanceStrategy: shardv1.ConsistentHashStrategy,
 		},
 	}
-	
+
 	// Create a few shards for testing
 	for i := 0; i < 3; i++ {
 		_, err := shardManager.CreateShard(ctx, shardConfig)
@@ -180,12 +180,12 @@ func BenchmarkResourceAssignment(b *testing.B) {
 // BenchmarkConcurrentResourceAssignment benchmarks concurrent resource assignment
 func BenchmarkConcurrentResourceAssignment(b *testing.B) {
 	ctx := context.Background()
-	
+
 	// Setup test environment
 	scheme := setupScheme()
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 	fakeKubeClient := kubefake.NewSimpleClientset()
-	
+
 	// Create mock dependencies
 	loadBalancer := &MockLoadBalancer{}
 	healthChecker := &MockHealthChecker{}
@@ -214,7 +214,7 @@ func BenchmarkConcurrentResourceAssignment(b *testing.B) {
 				Type: "test",
 				Data: map[string]string{"key": fmt.Sprintf("value-%d", i)},
 			}
-			
+
 			_, err := shardManager.AssignResource(ctx, resource)
 			if err != nil {
 				b.Fatalf("Failed to assign resource: %v", err)
@@ -227,10 +227,10 @@ func BenchmarkConcurrentResourceAssignment(b *testing.B) {
 // BenchmarkResourceMigration benchmarks resource migration between shards
 func BenchmarkResourceMigration(b *testing.B) {
 	ctx := context.Background()
-	
+
 	// Create mock resource migrator with realistic timing
 	resourceMigrator := &MockResourceMigrator{}
-	
+
 	// Create test resources
 	resources := make([]*interfaces.Resource, 100)
 	for i := 0; i < 100; i++ {
@@ -249,7 +249,7 @@ func BenchmarkResourceMigration(b *testing.B) {
 		if err != nil {
 			b.Fatalf("Failed to create migration plan: %v", err)
 		}
-		
+
 		err = resourceMigrator.ExecuteMigration(ctx, plan)
 		if err != nil {
 			b.Fatalf("Failed to execute migration: %v", err)
@@ -260,7 +260,7 @@ func BenchmarkResourceMigration(b *testing.B) {
 // BenchmarkLoadBalancerCalculation benchmarks load balancer calculations
 func BenchmarkLoadBalancerCalculation(b *testing.B) {
 	loadBalancer := &MockLoadBalancer{}
-	
+
 	// Create test shards
 	shards := make([]*shardv1.ShardInstance, 10)
 	for i := 0; i < 10; i++ {
@@ -288,12 +288,12 @@ func BenchmarkLoadBalancerCalculation(b *testing.B) {
 // TestShardStartupTime tests shard startup performance
 func TestShardStartupTime(t *testing.T) {
 	ctx := context.Background()
-	
+
 	// Setup test environment
 	scheme := setupScheme()
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 	fakeKubeClient := kubefake.NewSimpleClientset()
-	
+
 	// Create mock dependencies
 	loadBalancer := &MockLoadBalancer{}
 	healthChecker := &MockHealthChecker{}
@@ -335,7 +335,7 @@ func TestShardStartupTime(t *testing.T) {
 	var total time.Duration
 	var max time.Duration
 	min := startupTimes[0]
-	
+
 	for _, duration := range startupTimes {
 		total += duration
 		if duration > max {
@@ -345,11 +345,11 @@ func TestShardStartupTime(t *testing.T) {
 			min = duration
 		}
 	}
-	
+
 	avg := total / time.Duration(len(startupTimes))
-	
+
 	t.Logf("Shard startup times - Avg: %v, Min: %v, Max: %v", avg, min, max)
-	
+
 	// Assert reasonable startup times (should be under 1 second in test environment)
 	require.Less(t, avg, 1*time.Second, "Average startup time should be reasonable")
 	require.Less(t, max, 2*time.Second, "Maximum startup time should be reasonable")
@@ -359,10 +359,10 @@ func TestShardStartupTime(t *testing.T) {
 func TestResourceMigrationSpeed(t *testing.T) {
 	ctx := context.Background()
 	resourceMigrator := &MockResourceMigrator{}
-	
+
 	// Test different resource counts
 	resourceCounts := []int{10, 100, 1000}
-	
+
 	for _, count := range resourceCounts {
 		t.Run(fmt.Sprintf("Resources_%d", count), func(t *testing.T) {
 			// Create test resources
@@ -377,19 +377,19 @@ func TestResourceMigrationSpeed(t *testing.T) {
 					},
 				}
 			}
-			
+
 			start := time.Now()
 			plan, err := resourceMigrator.CreateMigrationPlan(ctx, "shard-1", "shard-2", resources)
 			require.NoError(t, err)
-			
+
 			err = resourceMigrator.ExecuteMigration(ctx, plan)
 			require.NoError(t, err)
-			
+
 			duration := time.Since(start)
 			throughput := float64(count) / duration.Seconds()
-			
+
 			t.Logf("Migrated %d resources in %v (%.2f resources/sec)", count, duration, throughput)
-			
+
 			// Assert reasonable migration speed
 			require.Greater(t, throughput, 100.0, "Migration throughput should be reasonable")
 		})
@@ -399,16 +399,16 @@ func TestResourceMigrationSpeed(t *testing.T) {
 // TestMemoryUsageUnderLoad tests memory usage during high load
 func TestMemoryUsageUnderLoad(t *testing.T) {
 	ctx := context.Background()
-	
+
 	// Start system profiler
 	profiler := NewSystemProfiler(100 * time.Millisecond)
 	profiler.Start()
-	
+
 	// Setup test environment
 	scheme := setupScheme()
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 	fakeKubeClient := kubefake.NewSimpleClientset()
-	
+
 	// Create mock dependencies
 	loadBalancer := &MockLoadBalancer{}
 	healthChecker := &MockHealthChecker{}
@@ -445,17 +445,17 @@ func TestMemoryUsageUnderLoad(t *testing.T) {
 			}
 		}(i)
 	}
-	
+
 	wg.Wait()
-	
+
 	// Stop profiler and get report
 	report := profiler.Stop()
-	
+
 	t.Logf("Memory usage report: %s", report.String())
-	
+
 	// Assert reasonable memory usage (should not exceed 100MB in test)
 	require.Less(t, report.MaxMemAllocMB, 100.0, "Memory usage should be reasonable under load")
-	
+
 	// Check for memory leaks (end memory should not be significantly higher than start)
 	memoryGrowth := report.EndMemAllocMB - report.StartMemAllocMB
 	require.Less(t, memoryGrowth, 50.0, "Memory growth should be limited")
@@ -464,12 +464,12 @@ func TestMemoryUsageUnderLoad(t *testing.T) {
 // TestConcurrentOperationsStability tests system stability under concurrent operations
 func TestConcurrentOperationsStability(t *testing.T) {
 	ctx := context.Background()
-	
+
 	// Setup test environment
 	scheme := setupScheme()
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 	fakeKubeClient := kubefake.NewSimpleClientset()
-	
+
 	// Create mock dependencies
 	loadBalancer := &MockLoadBalancer{}
 	healthChecker := &MockHealthChecker{}
@@ -490,7 +490,7 @@ func TestConcurrentOperationsStability(t *testing.T) {
 	// Run concurrent operations
 	var wg sync.WaitGroup
 	errorCh := make(chan error, 100)
-	
+
 	// Resource assignment workers
 	for i := 0; i < 5; i++ {
 		wg.Add(1)
@@ -512,7 +512,7 @@ func TestConcurrentOperationsStability(t *testing.T) {
 			}
 		}(i)
 	}
-	
+
 	// Health check workers
 	for i := 0; i < 3; i++ {
 		wg.Add(1)
@@ -530,17 +530,17 @@ func TestConcurrentOperationsStability(t *testing.T) {
 			}
 		}(i)
 	}
-	
+
 	wg.Wait()
 	close(errorCh)
-	
+
 	// Check for errors
 	errorCount := 0
 	for err := range errorCh {
 		t.Logf("Concurrent operation error: %v", err)
 		errorCount++
 	}
-	
+
 	// Allow some errors but not too many (should be stable)
 	require.Less(t, errorCount, 10, "System should be stable under concurrent operations")
 }
@@ -550,14 +550,14 @@ func TestLargeScaleShardManagement(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping large scale test in short mode")
 	}
-	
+
 	ctx := context.Background()
-	
+
 	// Setup test environment
 	scheme := setupScheme()
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 	fakeKubeClient := kubefake.NewSimpleClientset()
-	
+
 	// Create mock dependencies
 	loadBalancer := &MockLoadBalancer{}
 	healthChecker := &MockHealthChecker{}
@@ -589,14 +589,14 @@ func TestLargeScaleShardManagement(t *testing.T) {
 	// Create many shards and measure performance
 	shardCount := 100
 	start := time.Now()
-	
+
 	for i := 0; i < shardCount; i++ {
 		_, err := shardManager.CreateShard(ctx, shardConfig)
 		require.NoError(t, err)
 	}
-	
+
 	creationDuration := time.Since(start)
-	
+
 	// Test resource assignment with many shards
 	start = time.Now()
 	for i := 0; i < 1000; i++ {
@@ -609,12 +609,12 @@ func TestLargeScaleShardManagement(t *testing.T) {
 		require.NoError(t, err)
 	}
 	assignmentDuration := time.Since(start)
-	
-	t.Logf("Created %d shards in %v (%.2f shards/sec)", 
+
+	t.Logf("Created %d shards in %v (%.2f shards/sec)",
 		shardCount, creationDuration, float64(shardCount)/creationDuration.Seconds())
-	t.Logf("Assigned 1000 resources in %v (%.2f resources/sec)", 
+	t.Logf("Assigned 1000 resources in %v (%.2f resources/sec)",
 		assignmentDuration, 1000.0/assignmentDuration.Seconds())
-	
+
 	// Assert reasonable performance even at scale
 	require.Less(t, creationDuration, 30*time.Second, "Large scale shard creation should complete in reasonable time")
 	require.Less(t, assignmentDuration, 10*time.Second, "Large scale resource assignment should complete in reasonable time")

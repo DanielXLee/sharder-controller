@@ -21,7 +21,7 @@ func (suite *IntegrationTestSuite) TestLoadBalancingStrategies() {
 	for i := 0; i < 3; i++ {
 		shardID := fmt.Sprintf("lb-test-shard-%d", i+1)
 		shards[i] = suite.createTestShardInstance(shardID, shardv1.ShardPhaseRunning)
-		
+
 		// Set different loads
 		shards[i].Status.Load = float64(i+1) * 0.2 // 0.2, 0.4, 0.6
 		err := suite.k8sClient.Status().Update(suite.ctx, shards[i])
@@ -35,17 +35,17 @@ func (suite *IntegrationTestSuite) TestLoadBalancingStrategies() {
 
 		// Test resource assignment consistency
 		resource := &interfaces.Resource{ID: "test-resource-1"}
-		
+
 		// Assign same resource multiple times - should always go to same shard
 		var assignedShardID string
 		for i := 0; i < 5; i++ {
 			shard, err := suite.loadBalancer.AssignResourceToShard(resource, shards)
 			require.NoError(t, err)
-			
+
 			if i == 0 {
 				assignedShardID = shard.Spec.ShardID
 			} else {
-				assert.Equal(t, assignedShardID, shard.Spec.ShardID, 
+				assert.Equal(t, assignedShardID, shard.Spec.ShardID,
 					"Consistent hash should assign same resource to same shard")
 			}
 		}
@@ -134,7 +134,7 @@ func (suite *IntegrationTestSuite) TestLoadRebalancing() {
 	// Generate rebalance plan
 	plan, err := suite.loadBalancer.GenerateRebalancePlan(shards)
 	require.NoError(suite.T(), err)
-	
+
 	assert.Equal(suite.T(), "rebalance-shard-1", plan.SourceShard, "Should move from highest loaded shard")
 	assert.Contains(suite.T(), []string{"rebalance-shard-2", "rebalance-shard-3"}, plan.TargetShard)
 	assert.NotEmpty(suite.T(), plan.Resources, "Should have resources to move")
@@ -147,14 +147,14 @@ func (suite *IntegrationTestSuite) TestLoadRebalancing() {
 	err = suite.waitForCondition(10*time.Second, func() bool {
 		// Refresh shard data
 		updatedShard1 := &shardv1.ShardInstance{}
-		err := suite.k8sClient.Get(suite.ctx, 
+		err := suite.k8sClient.Get(suite.ctx,
 			suite.k8sClient.ObjectKeyFromObject(shard1), updatedShard1)
 		if err != nil {
 			return false
 		}
-		
+
 		updatedShard2 := &shardv1.ShardInstance{}
-		err = suite.k8sClient.Get(suite.ctx, 
+		err = suite.k8sClient.Get(suite.ctx,
 			suite.k8sClient.ObjectKeyFromObject(shard2), updatedShard2)
 		if err != nil {
 			return false
@@ -270,7 +270,7 @@ func (suite *IntegrationTestSuite) TestLoadDistribution() {
 	// Create shards with known loads
 	loads := []float64{0.2, 0.5, 0.8}
 	shards := make([]*shardv1.ShardInstance, len(loads))
-	
+
 	for i, load := range loads {
 		shardID := fmt.Sprintf("dist-shard-%d", i+1)
 		shards[i] = suite.createTestShardInstance(shardID, shardv1.ShardPhaseRunning)
@@ -281,7 +281,7 @@ func (suite *IntegrationTestSuite) TestLoadDistribution() {
 
 	// Get load distribution
 	distribution := suite.loadBalancer.GetLoadDistribution(shards)
-	
+
 	// Verify distribution
 	assert.Len(suite.T(), distribution, 3)
 	assert.Equal(suite.T(), 0.2, distribution["dist-shard-1"])

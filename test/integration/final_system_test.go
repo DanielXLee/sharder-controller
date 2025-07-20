@@ -33,12 +33,12 @@ import (
 // FinalSystemTestSuite provides comprehensive end-to-end system testing
 type FinalSystemTestSuite struct {
 	suite.Suite
-	cfg         *rest.Config
-	k8sClient   client.Client
-	clientset   kubernetes.Interface
-	testEnv     *envtest.Environment
-	ctx         context.Context
-	cancel      context.CancelFunc
+	cfg       *rest.Config
+	k8sClient client.Client
+	clientset kubernetes.Interface
+	testEnv   *envtest.Environment
+	ctx       context.Context
+	cancel    context.CancelFunc
 
 	// System components
 	shardManager     interfaces.ShardManager
@@ -55,13 +55,13 @@ type FinalSystemTestSuite struct {
 }
 
 type TestResult struct {
-	TestName    string
-	StartTime   time.Time
-	EndTime     time.Time
-	Duration    time.Duration
-	Success     bool
-	ErrorMsg    string
-	Metrics     map[string]interface{}
+	TestName  string
+	StartTime time.Time
+	EndTime   time.Time
+	Duration  time.Duration
+	Success   bool
+	ErrorMsg  string
+	Metrics   map[string]interface{}
 }
 
 func TestFinalSystemSuite(t *testing.T) {
@@ -691,7 +691,7 @@ func (suite *FinalSystemTestSuite) TestChaosEngineering() {
 	successfulScenarios := 0
 	for _, scenario := range chaosScenarios {
 		fmt.Printf("Executing chaos scenario: %s\n", scenario.name)
-		
+
 		// Execute chaos scenario
 		if err := scenario.execute(); err != nil {
 			fmt.Printf("Failed to execute scenario %s: %v\n", scenario.name, err)
@@ -712,8 +712,8 @@ func (suite *FinalSystemTestSuite) TestChaosEngineering() {
 	}
 
 	if successfulScenarios < len(chaosScenarios) {
-		suite.recordTestResult(testName, false, 
-			fmt.Sprintf("Only %d/%d chaos scenarios passed", successfulScenarios, len(chaosScenarios)), 
+		suite.recordTestResult(testName, false,
+			fmt.Sprintf("Only %d/%d chaos scenarios passed", successfulScenarios, len(chaosScenarios)),
 			metrics)
 		return
 	}
@@ -773,7 +773,7 @@ func (suite *FinalSystemTestSuite) TestRequirementsValidation() {
 
 	for _, req := range requirements {
 		fmt.Printf("Validating requirement %s: %s\n", req.id, req.description)
-		
+
 		if err := req.validator(); err != nil {
 			fmt.Printf("  FAILED: %v\n", err)
 			failedRequirements = append(failedRequirements, req.id)
@@ -788,8 +788,8 @@ func (suite *FinalSystemTestSuite) TestRequirementsValidation() {
 	metrics["failed_requirements"] = failedRequirements
 
 	if len(failedRequirements) > 0 {
-		suite.recordTestResult(testName, false, 
-			fmt.Sprintf("Failed requirements: %v", failedRequirements), 
+		suite.recordTestResult(testName, false,
+			fmt.Sprintf("Failed requirements: %v", failedRequirements),
 			metrics)
 		return
 	}
@@ -820,7 +820,7 @@ func (suite *FinalSystemTestSuite) TestSecurityScan() {
 
 	for _, check := range securityChecks {
 		fmt.Printf("Running security check: %s\n", check.name)
-		
+
 		if err := check.validator(); err != nil {
 			fmt.Printf("  FAILED: %v\n", err)
 			failedChecks = append(failedChecks, check.name)
@@ -835,8 +835,8 @@ func (suite *FinalSystemTestSuite) TestSecurityScan() {
 	metrics["failed_security_checks"] = failedChecks
 
 	if len(failedChecks) > 0 {
-		suite.recordTestResult(testName, false, 
-			fmt.Sprintf("Failed security checks: %v", failedChecks), 
+		suite.recordTestResult(testName, false,
+			fmt.Sprintf("Failed security checks: %v", failedChecks),
 			metrics)
 		return
 	}
@@ -867,7 +867,7 @@ func (suite *FinalSystemTestSuite) TestPerformanceBenchmarks() {
 
 	for _, benchmark := range benchmarks {
 		fmt.Printf("Running benchmark: %s\n", benchmark.name)
-		
+
 		results, err := benchmark.benchmark()
 		if err != nil {
 			fmt.Printf("  FAILED: %v\n", err)
@@ -884,8 +884,8 @@ func (suite *FinalSystemTestSuite) TestPerformanceBenchmarks() {
 	metrics["failed_benchmarks"] = failedBenchmarks
 
 	if len(failedBenchmarks) > 0 {
-		suite.recordTestResult(testName, false, 
-			fmt.Sprintf("Failed benchmarks: %v", failedBenchmarks), 
+		suite.recordTestResult(testName, false,
+			fmt.Sprintf("Failed benchmarks: %v", failedBenchmarks),
 			metrics)
 		return
 	}
@@ -949,7 +949,7 @@ func (suite *FinalSystemTestSuite) waitForRunningShardCount(expectedCount int, t
 		if err != nil {
 			return false
 		}
-		
+
 		runningCount := 0
 		for _, shard := range shardList.Items {
 			if shard.Status.Phase == shardv1.ShardPhaseRunning {
@@ -1036,7 +1036,7 @@ func (suite *FinalSystemTestSuite) simulateShardFailure() error {
 		Message:    "Simulated failure for testing",
 	}
 	shard.Status.AssignedResources = []string{"test-resource-1", "test-resource-2"}
-	
+
 	return suite.k8sClient.Status().Update(suite.ctx, shard)
 }
 
@@ -1142,10 +1142,10 @@ func (suite *FinalSystemTestSuite) executeConfigCorruption() error {
 			Namespace: "default",
 		},
 		Data: map[string]string{
-			"minShards":           "-1",     // Invalid
-			"maxShards":           "abc",    // Invalid
-			"scaleUpThreshold":    "2.0",    // Invalid (>1.0)
-			"scaleDownThreshold":  "-0.5",   // Invalid
+			"minShards":           "-1",      // Invalid
+			"maxShards":           "abc",     // Invalid
+			"scaleUpThreshold":    "2.0",     // Invalid (>1.0)
+			"scaleDownThreshold":  "-0.5",    // Invalid
 			"healthCheckInterval": "invalid", // Invalid
 		},
 	}
@@ -1161,7 +1161,7 @@ func (suite *FinalSystemTestSuite) verifyFailureRecovery() error {
 			healthyCount++
 		}
 	}
-	
+
 	if healthyCount == 0 {
 		return fmt.Errorf("no healthy shards remaining after multiple failures")
 	}
@@ -1240,13 +1240,13 @@ func (suite *FinalSystemTestSuite) validateLoadBalancingScaleUp() error {
 		{Status: shardv1.ShardInstanceStatus{Load: 0.9}},
 		{Status: shardv1.ShardInstanceStatus{Load: 0.1}},
 	}
-	
+
 	suite.loadBalancer.SetStrategy(shardv1.LeastLoadedStrategy, shards)
 	optimal, err := suite.loadBalancer.GetOptimalShard(shards)
 	if err != nil {
 		return err
 	}
-	
+
 	if optimal.Status.Load != 0.1 {
 		return fmt.Errorf("load balancer did not select least loaded shard")
 	}
@@ -1327,7 +1327,7 @@ func (suite *FinalSystemTestSuite) validateStopAllocationScaleDown() error {
 		if err != nil {
 			return false
 		}
-		
+
 		for _, shard := range shardList.Items {
 			if shard.Status.Phase == shardv1.ShardPhaseDraining {
 				return true
@@ -1376,7 +1376,7 @@ func (suite *FinalSystemTestSuite) validateContinuousHealthMonitoring() error {
 
 	// Wait a bit and verify health checks are happening
 	time.Sleep(3 * time.Second)
-	
+
 	// This is a basic validation - in a real system we'd check metrics
 	return nil
 }
@@ -1384,7 +1384,7 @@ func (suite *FinalSystemTestSuite) validateContinuousHealthMonitoring() error {
 func (suite *FinalSystemTestSuite) validateFailureDetection() error {
 	// Create a shard and make it fail
 	shard := suite.createTestShardInstance("test-failure-shard", shardv1.ShardPhaseRunning)
-	
+
 	// Start health checking
 	err := suite.healthChecker.StartHealthChecking(suite.ctx, 1*time.Second)
 	if err != nil {
@@ -1419,7 +1419,7 @@ func (suite *FinalSystemTestSuite) validateStopAllocationToFailed() error {
 
 	shards := []*shardv1.ShardInstance{failedShard, healthyShard}
 	suite.loadBalancer.SetStrategy(shardv1.LeastLoadedStrategy, shards)
-	
+
 	optimal, err := suite.loadBalancer.GetOptimalShard(shards)
 	if err != nil {
 		return err
@@ -1436,7 +1436,7 @@ func (suite *FinalSystemTestSuite) validateRecoveredShardInclusion() error {
 	// This would test that recovered shards are re-included
 	// For this test, we'll simulate recovery
 	shard := suite.createTestShardInstance("recovery-test-shard", shardv1.ShardPhaseFailed)
-	
+
 	// Start health checking
 	err := suite.healthChecker.StartHealthChecking(suite.ctx, 1*time.Second)
 	if err != nil {
@@ -1482,7 +1482,7 @@ func (suite *FinalSystemTestSuite) validateEmergencyAlert() error {
 
 	// Wait for alert condition to be detected
 	time.Sleep(5 * time.Second)
-	
+
 	// In a real system, we'd check if alert was sent
 	// For this test, we'll verify that >50% are unhealthy
 	unhealthyShards := suite.healthChecker.GetUnhealthyShards()
@@ -1526,7 +1526,7 @@ func (suite *FinalSystemTestSuite) validateRebalanceTrigger() error {
 		{Status: shardv1.ShardInstanceStatus{Load: 0.9}},
 		{Status: shardv1.ShardInstanceStatus{Load: 0.1}},
 	}
-	
+
 	shouldRebalance := suite.loadBalancer.ShouldRebalance(shards)
 	if !shouldRebalance {
 		return fmt.Errorf("rebalance not triggered with >20%% load difference")
@@ -1664,7 +1664,7 @@ func (suite *FinalSystemTestSuite) validateAPISecurity() error {
 // Performance benchmark methods
 func (suite *FinalSystemTestSuite) benchmarkShardStartupTime() (map[string]interface{}, error) {
 	startTime := time.Now()
-	
+
 	config := suite.createTestShardConfig()
 	err := suite.shardManager.ScaleUp(suite.ctx, int(config.Spec.MinShards))
 	if err != nil {
@@ -1701,7 +1701,7 @@ func (suite *FinalSystemTestSuite) benchmarkResourceMigrationSpeed() (map[string
 
 	// Measure migration time
 	startTime := time.Now()
-	
+
 	plan := &shardv1.MigrationPlan{
 		SourceShard: "benchmark-source",
 		TargetShard: "benchmark-target",
@@ -1754,7 +1754,7 @@ func (suite *FinalSystemTestSuite) benchmarkLoadBalancingPerformance() (map[stri
 
 func (suite *FinalSystemTestSuite) benchmarkHealthCheckLatency() (map[string]interface{}, error) {
 	shard := suite.createTestShardInstance("health-bench-shard", shardv1.ShardPhaseRunning)
-	
+
 	startTime := time.Now()
 	_, err := suite.healthChecker.CheckShardHealth(suite.ctx, shard.Spec.ShardID)
 	if err != nil {
@@ -1816,7 +1816,7 @@ func (suite *FinalSystemTestSuite) benchmarkConfigurationUpdateSpeed() (map[stri
 
 func (suite *FinalSystemTestSuite) benchmarkFailureDetectionTime() (map[string]interface{}, error) {
 	shard := suite.createTestShardInstance("failure-bench-shard", shardv1.ShardPhaseRunning)
-	
+
 	// Start health checking
 	err := suite.healthChecker.StartHealthChecking(suite.ctx, 1*time.Second)
 	if err != nil {
@@ -1850,9 +1850,9 @@ func (suite *FinalSystemTestSuite) benchmarkSystemResourceUsage() (map[string]in
 	// This would measure actual system resource usage
 	// For this test, we'll return mock metrics
 	return map[string]interface{}{
-		"memory_usage_mb": 256,
+		"memory_usage_mb":   256,
 		"cpu_usage_percent": 15.5,
-		"goroutines": 45,
+		"goroutines":        45,
 	}, nil
 }
 

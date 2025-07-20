@@ -30,10 +30,10 @@ func NewMockShardManager(client client.Client) *MockShardManager {
 func (m *MockShardManager) CreateShard(ctx context.Context, config *shardv1.ShardConfigSpec) (*shardv1.ShardInstance, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	m.shardCounter++
 	shardID := fmt.Sprintf("shard-%d", m.shardCounter)
-	
+
 	shard := &shardv1.ShardInstance{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      shardID,
@@ -53,12 +53,12 @@ func (m *MockShardManager) CreateShard(ctx context.Context, config *shardv1.Shar
 			Load:          0.0,
 		},
 	}
-	
+
 	err := m.client.Create(ctx, shard)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	m.shards[shardID] = shard
 	return shard, nil
 }
@@ -66,17 +66,17 @@ func (m *MockShardManager) CreateShard(ctx context.Context, config *shardv1.Shar
 func (m *MockShardManager) DeleteShard(ctx context.Context, shardId string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	shard, exists := m.shards[shardId]
 	if !exists {
 		return fmt.Errorf("shard %s not found", shardId)
 	}
-	
+
 	err := m.client.Delete(ctx, shard)
 	if err != nil {
 		return err
 	}
-	
+
 	delete(m.shards, shardId)
 	return nil
 }
@@ -85,7 +85,7 @@ func (m *MockShardManager) ScaleUp(ctx context.Context, targetCount int) error {
 	m.mu.RLock()
 	currentCount := len(m.shards)
 	m.mu.RUnlock()
-	
+
 	for i := currentCount; i < targetCount; i++ {
 		_, err := m.CreateShard(ctx, &shardv1.ShardConfigSpec{})
 		if err != nil {
@@ -102,11 +102,11 @@ func (m *MockShardManager) ScaleDown(ctx context.Context, targetCount int) error
 		currentShards = append(currentShards, shard)
 	}
 	m.mu.RUnlock()
-	
+
 	if len(currentShards) <= targetCount {
 		return nil
 	}
-	
+
 	// Mark excess shards for draining
 	for i := targetCount; i < len(currentShards); i++ {
 		shard := currentShards[i]
@@ -116,7 +116,7 @@ func (m *MockShardManager) ScaleDown(ctx context.Context, targetCount int) error
 			return err
 		}
 	}
-	
+
 	// Simulate gradual shutdown
 	go func() {
 		time.Sleep(2 * time.Second)
@@ -125,7 +125,7 @@ func (m *MockShardManager) ScaleDown(ctx context.Context, targetCount int) error
 			m.DeleteShard(context.Background(), shard.Spec.ShardID)
 		}
 	}()
-	
+
 	return nil
 }
 
@@ -137,7 +137,7 @@ func (m *MockShardManager) RebalanceLoad(ctx context.Context) error {
 func (m *MockShardManager) AssignResource(ctx context.Context, resource *interfaces.Resource) (string, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	for shardID := range m.shards {
 		return shardID, nil
 	}
@@ -147,12 +147,12 @@ func (m *MockShardManager) AssignResource(ctx context.Context, resource *interfa
 func (m *MockShardManager) CheckShardHealth(ctx context.Context, shardId string) (*shardv1.HealthStatus, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	shard, exists := m.shards[shardId]
 	if !exists {
 		return nil, fmt.Errorf("shard %s not found", shardId)
 	}
-	
+
 	return shard.Status.HealthStatus, nil
 }
 
@@ -160,12 +160,12 @@ func (m *MockShardManager) HandleFailedShard(ctx context.Context, shardId string
 	// Mock implementation - just mark as failed
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	shard, exists := m.shards[shardId]
 	if !exists {
 		return fmt.Errorf("shard %s not found", shardId)
 	}
-	
+
 	shard.Status.Phase = shardv1.ShardPhaseFailed
 	return m.client.Status().Update(ctx, shard)
 }
@@ -173,19 +173,19 @@ func (m *MockShardManager) HandleFailedShard(ctx context.Context, shardId string
 func (m *MockShardManager) GetShardStatus(ctx context.Context, shardId string) (*shardv1.ShardInstanceStatus, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	shard, exists := m.shards[shardId]
 	if !exists {
 		return nil, fmt.Errorf("shard %s not found", shardId)
 	}
-	
+
 	return &shard.Status, nil
 }
 
 func (m *MockShardManager) ListShards(ctx context.Context) ([]*shardv1.ShardInstance, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	shards := make([]*shardv1.ShardInstance, 0, len(m.shards))
 	for _, shard := range m.shards {
 		shards = append(shards, shard)
@@ -213,21 +213,21 @@ func (m *MockLoadBalancer) GetOptimalShard(shards []*shardv1.ShardInstance) (*sh
 	if len(shards) == 0 {
 		return nil, fmt.Errorf("no shards available")
 	}
-	
+
 	var optimal *shardv1.ShardInstance
 	minLoad := float64(1.0)
-	
+
 	for _, shard := range shards {
 		if shard.Status.Phase == shardv1.ShardPhaseRunning && shard.Status.Load < minLoad {
 			optimal = shard
 			minLoad = shard.Status.Load
 		}
 	}
-	
+
 	if optimal == nil {
 		return shards[0], nil // Fallback to first shard
 	}
-	
+
 	return optimal, nil
 }
 
@@ -240,7 +240,7 @@ func (m *MockLoadBalancer) ShouldRebalance(shards []*shardv1.ShardInstance) bool
 	if len(shards) < 2 {
 		return false
 	}
-	
+
 	var maxLoad, minLoad float64
 	for i, shard := range shards {
 		if i == 0 {
@@ -255,7 +255,7 @@ func (m *MockLoadBalancer) ShouldRebalance(shards []*shardv1.ShardInstance) bool
 			}
 		}
 	}
-	
+
 	return (maxLoad - minLoad) > 0.2 // 20% threshold
 }
 
@@ -263,11 +263,11 @@ func (m *MockLoadBalancer) GenerateRebalancePlan(shards []*shardv1.ShardInstance
 	if len(shards) < 2 {
 		return nil, fmt.Errorf("not enough shards for rebalancing")
 	}
-	
+
 	var sourceShard, targetShard *shardv1.ShardInstance
 	maxLoad := float64(0)
 	minLoad := float64(1)
-	
+
 	for _, shard := range shards {
 		if shard.Status.Load > maxLoad {
 			maxLoad = shard.Status.Load
@@ -278,7 +278,7 @@ func (m *MockLoadBalancer) GenerateRebalancePlan(shards []*shardv1.ShardInstance
 			targetShard = shard
 		}
 	}
-	
+
 	return &shardv1.MigrationPlan{
 		SourceShard:   sourceShard.Spec.ShardID,
 		TargetShard:   targetShard.Spec.ShardID,
@@ -294,11 +294,11 @@ func (m *MockLoadBalancer) AssignResourceToShard(resource *interfaces.Resource, 
 
 // MockHealthChecker implements interfaces.HealthChecker for testing
 type MockHealthChecker struct {
-	client         client.Client
-	healthStatus   map[string]*shardv1.HealthStatus
+	client          client.Client
+	healthStatus    map[string]*shardv1.HealthStatus
 	unhealthyShards map[string]bool
-	mu             sync.RWMutex
-	stopCh         chan struct{}
+	mu              sync.RWMutex
+	stopCh          chan struct{}
 }
 
 func NewMockHealthChecker(client client.Client) *MockHealthChecker {
@@ -316,11 +316,11 @@ func (m *MockHealthChecker) CheckHealth(ctx context.Context, shard *shardv1.Shar
 func (m *MockHealthChecker) CheckShardHealth(ctx context.Context, shardId string) (*shardv1.HealthStatus, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	if status, exists := m.healthStatus[shardId]; exists {
 		return status, nil
 	}
-	
+
 	return &shardv1.HealthStatus{
 		Healthy:   true,
 		LastCheck: metav1.Now(),
@@ -329,11 +329,11 @@ func (m *MockHealthChecker) CheckShardHealth(ctx context.Context, shardId string
 
 func (m *MockHealthChecker) StartHealthChecking(ctx context.Context, interval time.Duration) error {
 	m.stopCh = make(chan struct{})
-	
+
 	go func() {
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
-		
+
 		for {
 			select {
 			case <-ticker.C:
@@ -343,7 +343,7 @@ func (m *MockHealthChecker) StartHealthChecking(ctx context.Context, interval ti
 			}
 		}
 	}()
-	
+
 	return nil
 }
 
@@ -357,14 +357,14 @@ func (m *MockHealthChecker) StopHealthChecking() error {
 func (m *MockHealthChecker) IsShardHealthy(shardId string) bool {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	return !m.unhealthyShards[shardId]
 }
 
 func (m *MockHealthChecker) GetUnhealthyShards() []string {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	var unhealthy []string
 	for shardId := range m.unhealthyShards {
 		if m.unhealthyShards[shardId] {
@@ -377,7 +377,7 @@ func (m *MockHealthChecker) GetUnhealthyShards() []string {
 func (m *MockHealthChecker) GetHealthSummary() map[string]*shardv1.HealthStatus {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	summary := make(map[string]*shardv1.HealthStatus)
 	for shardId, status := range m.healthStatus {
 		summary[shardId] = status
@@ -388,7 +388,7 @@ func (m *MockHealthChecker) GetHealthSummary() map[string]*shardv1.HealthStatus 
 func (m *MockHealthChecker) OnShardFailed(ctx context.Context, shardId string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	m.unhealthyShards[shardId] = true
 	m.healthStatus[shardId] = &shardv1.HealthStatus{
 		Healthy:    false,
@@ -402,7 +402,7 @@ func (m *MockHealthChecker) OnShardFailed(ctx context.Context, shardId string) e
 func (m *MockHealthChecker) OnShardRecovered(ctx context.Context, shardId string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	m.unhealthyShards[shardId] = false
 	m.healthStatus[shardId] = &shardv1.HealthStatus{
 		Healthy:   true,
@@ -419,10 +419,10 @@ func (m *MockHealthChecker) performHealthCheck(ctx context.Context) {
 	if err != nil {
 		return
 	}
-	
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	for _, shard := range shardList.Items {
 		// Check if shard is healthy based on heartbeat
 		lastHeartbeat := shard.Status.LastHeartbeat.Time
@@ -458,7 +458,7 @@ func (m *MockResourceMigrator) CreateMigrationPlan(ctx context.Context, sourceSh
 	for i, resource := range resources {
 		resourceIds[i] = resource.ID
 	}
-	
+
 	return &shardv1.MigrationPlan{
 		SourceShard:   sourceShard,
 		TargetShard:   targetShard,
@@ -478,7 +478,7 @@ func (m *MockResourceMigrator) ExecuteMigration(ctx context.Context, plan *shard
 	if err != nil {
 		return err
 	}
-	
+
 	targetShard := &shardv1.ShardInstance{}
 	err = m.client.Get(ctx, client.ObjectKey{
 		Name:      plan.TargetShard,
@@ -487,7 +487,7 @@ func (m *MockResourceMigrator) ExecuteMigration(ctx context.Context, plan *shard
 	if err != nil {
 		return err
 	}
-	
+
 	// Remove resources from source
 	newSourceResources := []string{}
 	for _, resource := range sourceShard.Status.AssignedResources {
@@ -503,16 +503,16 @@ func (m *MockResourceMigrator) ExecuteMigration(ctx context.Context, plan *shard
 		}
 	}
 	sourceShard.Status.AssignedResources = newSourceResources
-	
+
 	// Add resources to target
 	targetShard.Status.AssignedResources = append(targetShard.Status.AssignedResources, plan.Resources...)
-	
+
 	// Update both shards
 	err = m.client.Status().Update(ctx, sourceShard)
 	if err != nil {
 		return err
 	}
-	
+
 	return m.client.Status().Update(ctx, targetShard)
 }
 

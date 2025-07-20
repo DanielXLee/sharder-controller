@@ -24,13 +24,13 @@ type ShardConfig struct {
 
 // ShardConfigSpec defines the desired state of ShardConfig
 type ShardConfigSpec struct {
-	MinShards               int                   `json:"minShards"`
-	MaxShards               int                   `json:"maxShards"`
-	ScaleUpThreshold        float64              `json:"scaleUpThreshold"`
-	ScaleDownThreshold      float64              `json:"scaleDownThreshold"`
-	HealthCheckInterval     metav1.Duration      `json:"healthCheckInterval"`
-	LoadBalanceStrategy     LoadBalanceStrategy  `json:"loadBalanceStrategy"`
-	GracefulShutdownTimeout metav1.Duration      `json:"gracefulShutdownTimeout"`
+	MinShards               int                 `json:"minShards"`
+	MaxShards               int                 `json:"maxShards"`
+	ScaleUpThreshold        float64             `json:"scaleUpThreshold"`
+	ScaleDownThreshold      float64             `json:"scaleDownThreshold"`
+	HealthCheckInterval     metav1.Duration     `json:"healthCheckInterval"`
+	LoadBalanceStrategy     LoadBalanceStrategy `json:"loadBalanceStrategy"`
+	GracefulShutdownTimeout metav1.Duration     `json:"gracefulShutdownTimeout"`
 }
 
 // ShardConfigStatus defines the observed state of ShardConfig
@@ -61,11 +61,11 @@ type ShardInstanceSpec struct {
 
 // ShardInstanceStatus defines the observed state of ShardInstance
 type ShardInstanceStatus struct {
-	Phase             ShardPhase        `json:"phase"`
-	Load              float64           `json:"load"`
-	LastHeartbeat     metav1.Time       `json:"lastHeartbeat"`
-	AssignedResources []string          `json:"assignedResources,omitempty"`
-	HealthStatus      *HealthStatus     `json:"healthStatus,omitempty"`
+	Phase             ShardPhase    `json:"phase"`
+	Load              float64       `json:"load"`
+	LastHeartbeat     metav1.Time   `json:"lastHeartbeat"`
+	AssignedResources []string      `json:"assignedResources,omitempty"`
+	HealthStatus      *HealthStatus `json:"healthStatus,omitempty"`
 }
 
 // HashRange defines the hash range for consistent hashing
@@ -84,11 +84,11 @@ type HealthStatus struct {
 
 // LoadMetrics represents load metrics for a shard
 type LoadMetrics struct {
-	ResourceCount   int     `json:"resourceCount"`
-	CPUUsage        float64 `json:"cpuUsage"`
-	MemoryUsage     float64 `json:"memoryUsage"`
-	ProcessingRate  float64 `json:"processingRate"`
-	QueueLength     int     `json:"queueLength"`
+	ResourceCount  int     `json:"resourceCount"`
+	CPUUsage       float64 `json:"cpuUsage"`
+	MemoryUsage    float64 `json:"memoryUsage"`
+	ProcessingRate float64 `json:"processingRate"`
+	QueueLength    int     `json:"queueLength"`
 }
 
 // MigrationPlan represents a resource migration plan
@@ -195,9 +195,9 @@ func (si *ShardInstance) TransitionTo(newPhase ShardPhase) error {
 	if !si.CanTransitionTo(newPhase) {
 		return fmt.Errorf("invalid phase transition from %s to %s", si.Status.Phase, newPhase)
 	}
-	
+
 	si.Status.Phase = newPhase
-	
+
 	// Update timestamps and status based on phase
 	now := metav1.Now()
 	switch newPhase {
@@ -220,7 +220,7 @@ func (si *ShardInstance) TransitionTo(newPhase ShardPhase) error {
 		si.Status.AssignedResources = nil
 		si.Status.Load = 0
 	}
-	
+
 	return nil
 }
 
@@ -335,19 +335,19 @@ func (lm *LoadMetrics) CalculateOverallLoad() float64 {
 	cpuWeight := 0.3
 	memoryWeight := 0.2
 	queueWeight := 0.2
-	
+
 	// Normalize resource count (assuming max 1000 resources)
 	normalizedResources := float64(lm.ResourceCount) / 1000.0
 	if normalizedResources > 1.0 {
 		normalizedResources = 1.0
 	}
-	
+
 	// Normalize queue length (assuming max 100 items)
 	normalizedQueue := float64(lm.QueueLength) / 100.0
 	if normalizedQueue > 1.0 {
 		normalizedQueue = 1.0
 	}
-	
+
 	return resourceWeight*normalizedResources +
 		cpuWeight*lm.CPUUsage +
 		memoryWeight*lm.MemoryUsage +
@@ -372,18 +372,18 @@ func IsValidPhaseTransition(oldPhase, newPhase ShardPhase) bool {
 		ShardPhaseFailed:     {ShardPhaseRunning, ShardPhaseTerminated},
 		ShardPhaseTerminated: {}, // Terminal state
 	}
-	
+
 	validNext, exists := validTransitions[oldPhase]
 	if !exists {
 		return false
 	}
-	
+
 	for _, valid := range validNext {
 		if newPhase == valid {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -396,7 +396,7 @@ func GetAllValidTransitions(phase ShardPhase) []ShardPhase {
 		ShardPhaseFailed:     {ShardPhaseRunning, ShardPhaseTerminated},
 		ShardPhaseTerminated: {},
 	}
-	
+
 	if transitions, exists := validTransitions[phase]; exists {
 		return transitions
 	}

@@ -16,14 +16,14 @@ import (
 type ErrorType string
 
 const (
-	ErrorTypeShardStartup      ErrorType = "shard_startup"
-	ErrorTypeShardRuntime      ErrorType = "shard_runtime"
-	ErrorTypeMigrationFailure  ErrorType = "migration_failure"
-	ErrorTypeNetworkPartition  ErrorType = "network_partition"
+	ErrorTypeShardStartup       ErrorType = "shard_startup"
+	ErrorTypeShardRuntime       ErrorType = "shard_runtime"
+	ErrorTypeMigrationFailure   ErrorType = "migration_failure"
+	ErrorTypeNetworkPartition   ErrorType = "network_partition"
 	ErrorTypeConfigurationError ErrorType = "configuration_error"
 	ErrorTypeResourceExhaustion ErrorType = "resource_exhaustion"
-	ErrorTypeSystemOverload    ErrorType = "system_overload"
-	ErrorTypeLeaderElection    ErrorType = "leader_election"
+	ErrorTypeSystemOverload     ErrorType = "system_overload"
+	ErrorTypeLeaderElection     ErrorType = "leader_election"
 )
 
 // ErrorSeverity represents the severity level of an error
@@ -40,58 +40,58 @@ const (
 type RecoveryAction string
 
 const (
-	RecoveryActionRetry           RecoveryAction = "retry"
-	RecoveryActionRestart         RecoveryAction = "restart"
-	RecoveryActionMigrate         RecoveryAction = "migrate"
-	RecoveryActionScale           RecoveryAction = "scale"
+	RecoveryActionRetry              RecoveryAction = "retry"
+	RecoveryActionRestart            RecoveryAction = "restart"
+	RecoveryActionMigrate            RecoveryAction = "migrate"
+	RecoveryActionScale              RecoveryAction = "scale"
 	RecoveryActionManualIntervention RecoveryAction = "manual_intervention"
-	RecoveryActionIgnore          RecoveryAction = "ignore"
+	RecoveryActionIgnore             RecoveryAction = "ignore"
 )
 
 // ErrorContext contains contextual information about an error
 type ErrorContext struct {
-	ErrorType     ErrorType                `json:"error_type"`
-	Severity      ErrorSeverity            `json:"severity"`
-	Component     string                   `json:"component"`
-	Operation     string                   `json:"operation"`
-	ShardID       string                   `json:"shard_id,omitempty"`
-	ResourceID    string                   `json:"resource_id,omitempty"`
-	Timestamp     time.Time                `json:"timestamp"`
-	Error         error                    `json:"error"`
-	Metadata      map[string]interface{}   `json:"metadata,omitempty"`
-	RetryCount    int                      `json:"retry_count"`
-	MaxRetries    int                      `json:"max_retries"`
-	LastRetryTime time.Time                `json:"last_retry_time,omitempty"`
+	ErrorType     ErrorType              `json:"error_type"`
+	Severity      ErrorSeverity          `json:"severity"`
+	Component     string                 `json:"component"`
+	Operation     string                 `json:"operation"`
+	ShardID       string                 `json:"shard_id,omitempty"`
+	ResourceID    string                 `json:"resource_id,omitempty"`
+	Timestamp     time.Time              `json:"timestamp"`
+	Error         error                  `json:"error"`
+	Metadata      map[string]interface{} `json:"metadata,omitempty"`
+	RetryCount    int                    `json:"retry_count"`
+	MaxRetries    int                    `json:"max_retries"`
+	LastRetryTime time.Time              `json:"last_retry_time,omitempty"`
 }
 
 // RecoveryStrategy defines how to handle a specific type of error
 type RecoveryStrategy struct {
-	ErrorType      ErrorType      `json:"error_type"`
-	MaxRetries     int            `json:"max_retries"`
-	RetryDelay     time.Duration  `json:"retry_delay"`
-	BackoffFactor  float64        `json:"backoff_factor"`
-	MaxRetryDelay  time.Duration  `json:"max_retry_delay"`
-	RecoveryAction RecoveryAction `json:"recovery_action"`
-	Timeout        time.Duration  `json:"timeout"`
-	RequiresManualIntervention bool `json:"requires_manual_intervention"`
+	ErrorType                  ErrorType      `json:"error_type"`
+	MaxRetries                 int            `json:"max_retries"`
+	RetryDelay                 time.Duration  `json:"retry_delay"`
+	BackoffFactor              float64        `json:"backoff_factor"`
+	MaxRetryDelay              time.Duration  `json:"max_retry_delay"`
+	RecoveryAction             RecoveryAction `json:"recovery_action"`
+	Timeout                    time.Duration  `json:"timeout"`
+	RequiresManualIntervention bool           `json:"requires_manual_intervention"`
 }
 
 // ErrorHandler provides unified error handling and recovery mechanisms
 type ErrorHandler struct {
-	mu                sync.RWMutex
-	strategies        map[ErrorType]*RecoveryStrategy
-	activeErrors      map[string]*ErrorContext
-	errorHistory      []ErrorContext
-	maxHistorySize    int
-	
+	mu             sync.RWMutex
+	strategies     map[ErrorType]*RecoveryStrategy
+	activeErrors   map[string]*ErrorContext
+	errorHistory   []ErrorContext
+	maxHistorySize int
+
 	// Dependencies
 	alertManager     interfaces.AlertManager
 	structuredLogger interfaces.StructuredLogger
 	metricsCollector interfaces.MetricsCollector
-	
+
 	// Recovery handlers
 	recoveryHandlers map[RecoveryAction]RecoveryHandler
-	
+
 	// Circuit breaker state
 	circuitBreakers map[string]*CircuitBreaker
 }
@@ -116,9 +116,9 @@ type CircuitBreaker struct {
 type CircuitBreakerState string
 
 const (
-	CircuitBreakerClosed    CircuitBreakerState = "closed"
-	CircuitBreakerOpen      CircuitBreakerState = "open"
-	CircuitBreakerHalfOpen  CircuitBreakerState = "half_open"
+	CircuitBreakerClosed   CircuitBreakerState = "closed"
+	CircuitBreakerOpen     CircuitBreakerState = "open"
+	CircuitBreakerHalfOpen CircuitBreakerState = "half_open"
 )
 
 // NewErrorHandler creates a new error handler with default strategies
@@ -138,10 +138,10 @@ func NewErrorHandler(
 		recoveryHandlers: make(map[RecoveryAction]RecoveryHandler),
 		circuitBreakers:  make(map[string]*CircuitBreaker),
 	}
-	
+
 	// Initialize default recovery strategies
 	eh.initializeDefaultStrategies()
-	
+
 	return eh
 }
 
@@ -149,87 +149,87 @@ func NewErrorHandler(
 func (eh *ErrorHandler) initializeDefaultStrategies() {
 	strategies := map[ErrorType]*RecoveryStrategy{
 		ErrorTypeShardStartup: {
-			ErrorType:      ErrorTypeShardStartup,
-			MaxRetries:     3,
-			RetryDelay:     30 * time.Second,
-			BackoffFactor:  2.0,
-			MaxRetryDelay:  5 * time.Minute,
-			RecoveryAction: RecoveryActionRetry,
-			Timeout:        10 * time.Minute,
+			ErrorType:                  ErrorTypeShardStartup,
+			MaxRetries:                 3,
+			RetryDelay:                 30 * time.Second,
+			BackoffFactor:              2.0,
+			MaxRetryDelay:              5 * time.Minute,
+			RecoveryAction:             RecoveryActionRetry,
+			Timeout:                    10 * time.Minute,
 			RequiresManualIntervention: false,
 		},
 		ErrorTypeShardRuntime: {
-			ErrorType:      ErrorTypeShardRuntime,
-			MaxRetries:     2,
-			RetryDelay:     15 * time.Second,
-			BackoffFactor:  1.5,
-			MaxRetryDelay:  2 * time.Minute,
-			RecoveryAction: RecoveryActionRestart,
-			Timeout:        5 * time.Minute,
+			ErrorType:                  ErrorTypeShardRuntime,
+			MaxRetries:                 2,
+			RetryDelay:                 15 * time.Second,
+			BackoffFactor:              1.5,
+			MaxRetryDelay:              2 * time.Minute,
+			RecoveryAction:             RecoveryActionRestart,
+			Timeout:                    5 * time.Minute,
 			RequiresManualIntervention: false,
 		},
 		ErrorTypeMigrationFailure: {
-			ErrorType:      ErrorTypeMigrationFailure,
-			MaxRetries:     3,
-			RetryDelay:     1 * time.Minute,
-			BackoffFactor:  2.0,
-			MaxRetryDelay:  10 * time.Minute,
-			RecoveryAction: RecoveryActionRetry,
-			Timeout:        30 * time.Minute,
+			ErrorType:                  ErrorTypeMigrationFailure,
+			MaxRetries:                 3,
+			RetryDelay:                 1 * time.Minute,
+			BackoffFactor:              2.0,
+			MaxRetryDelay:              10 * time.Minute,
+			RecoveryAction:             RecoveryActionRetry,
+			Timeout:                    30 * time.Minute,
 			RequiresManualIntervention: false,
 		},
 		ErrorTypeNetworkPartition: {
-			ErrorType:      ErrorTypeNetworkPartition,
-			MaxRetries:     5,
-			RetryDelay:     30 * time.Second,
-			BackoffFactor:  1.2,
-			MaxRetryDelay:  5 * time.Minute,
-			RecoveryAction: RecoveryActionRetry,
-			Timeout:        15 * time.Minute,
+			ErrorType:                  ErrorTypeNetworkPartition,
+			MaxRetries:                 5,
+			RetryDelay:                 30 * time.Second,
+			BackoffFactor:              1.2,
+			MaxRetryDelay:              5 * time.Minute,
+			RecoveryAction:             RecoveryActionRetry,
+			Timeout:                    15 * time.Minute,
 			RequiresManualIntervention: false,
 		},
 		ErrorTypeConfigurationError: {
-			ErrorType:      ErrorTypeConfigurationError,
-			MaxRetries:     1,
-			RetryDelay:     5 * time.Second,
-			BackoffFactor:  1.0,
-			MaxRetryDelay:  5 * time.Second,
-			RecoveryAction: RecoveryActionManualIntervention,
-			Timeout:        1 * time.Minute,
+			ErrorType:                  ErrorTypeConfigurationError,
+			MaxRetries:                 1,
+			RetryDelay:                 5 * time.Second,
+			BackoffFactor:              1.0,
+			MaxRetryDelay:              5 * time.Second,
+			RecoveryAction:             RecoveryActionManualIntervention,
+			Timeout:                    1 * time.Minute,
 			RequiresManualIntervention: true,
 		},
 		ErrorTypeResourceExhaustion: {
-			ErrorType:      ErrorTypeResourceExhaustion,
-			MaxRetries:     2,
-			RetryDelay:     2 * time.Minute,
-			BackoffFactor:  2.0,
-			MaxRetryDelay:  10 * time.Minute,
-			RecoveryAction: RecoveryActionScale,
-			Timeout:        20 * time.Minute,
+			ErrorType:                  ErrorTypeResourceExhaustion,
+			MaxRetries:                 2,
+			RetryDelay:                 2 * time.Minute,
+			BackoffFactor:              2.0,
+			MaxRetryDelay:              10 * time.Minute,
+			RecoveryAction:             RecoveryActionScale,
+			Timeout:                    20 * time.Minute,
 			RequiresManualIntervention: false,
 		},
 		ErrorTypeSystemOverload: {
-			ErrorType:      ErrorTypeSystemOverload,
-			MaxRetries:     1,
-			RetryDelay:     5 * time.Minute,
-			BackoffFactor:  1.0,
-			MaxRetryDelay:  5 * time.Minute,
-			RecoveryAction: RecoveryActionScale,
-			Timeout:        30 * time.Minute,
+			ErrorType:                  ErrorTypeSystemOverload,
+			MaxRetries:                 1,
+			RetryDelay:                 5 * time.Minute,
+			BackoffFactor:              1.0,
+			MaxRetryDelay:              5 * time.Minute,
+			RecoveryAction:             RecoveryActionScale,
+			Timeout:                    30 * time.Minute,
 			RequiresManualIntervention: false,
 		},
 		ErrorTypeLeaderElection: {
-			ErrorType:      ErrorTypeLeaderElection,
-			MaxRetries:     5,
-			RetryDelay:     10 * time.Second,
-			BackoffFactor:  1.5,
-			MaxRetryDelay:  2 * time.Minute,
-			RecoveryAction: RecoveryActionRetry,
-			Timeout:        10 * time.Minute,
+			ErrorType:                  ErrorTypeLeaderElection,
+			MaxRetries:                 5,
+			RetryDelay:                 10 * time.Second,
+			BackoffFactor:              1.5,
+			MaxRetryDelay:              2 * time.Minute,
+			RecoveryAction:             RecoveryActionRetry,
+			Timeout:                    10 * time.Minute,
 			RequiresManualIntervention: false,
 		},
 	}
-	
+
 	for errorType, strategy := range strategies {
 		eh.strategies[errorType] = strategy
 	}
@@ -240,54 +240,54 @@ func (eh *ErrorHandler) HandleError(ctx context.Context, errorCtx *ErrorContext)
 	if errorCtx == nil {
 		return fmt.Errorf("error context cannot be nil")
 	}
-	
+
 	logger := log.FromContext(ctx).WithValues(
 		"errorType", errorCtx.ErrorType,
 		"component", errorCtx.Component,
 		"operation", errorCtx.Operation,
 		"severity", errorCtx.Severity,
 	)
-	
+
 	// Set timestamp if not already set
 	if errorCtx.Timestamp.IsZero() {
 		errorCtx.Timestamp = time.Now()
 	}
-	
+
 	// Generate unique error ID
 	errorID := eh.generateErrorID(errorCtx)
-	
+
 	logger.Info("Handling error", "errorID", errorID, "error", errorCtx.Error.Error())
-	
+
 	// Record error metrics
 	eh.recordErrorMetrics(errorCtx)
-	
+
 	// Log structured error event
 	eh.logErrorEvent(ctx, errorCtx)
-	
+
 	// Check circuit breaker
 	if eh.isCircuitBreakerOpen(errorCtx) {
 		logger.Info("Circuit breaker is open, skipping recovery", "errorID", errorID)
 		return eh.handleCircuitBreakerOpen(ctx, errorCtx)
 	}
-	
+
 	// Get recovery strategy
 	strategy := eh.getRecoveryStrategy(errorCtx.ErrorType)
 	if strategy == nil {
 		logger.Error(fmt.Errorf("no recovery strategy found"), "No recovery strategy", "errorType", errorCtx.ErrorType)
 		return eh.handleUnknownError(ctx, errorCtx)
 	}
-	
+
 	// Update error context with strategy info
 	errorCtx.MaxRetries = strategy.MaxRetries
-	
+
 	// Store active error
 	eh.storeActiveError(errorID, errorCtx)
-	
+
 	// Determine if immediate manual intervention is required
 	if strategy.RequiresManualIntervention || eh.shouldTriggerManualIntervention(errorCtx) {
 		return eh.triggerManualIntervention(ctx, errorCtx)
 	}
-	
+
 	// Attempt recovery
 	return eh.attemptRecovery(ctx, errorCtx, strategy)
 }
@@ -295,16 +295,16 @@ func (eh *ErrorHandler) HandleError(ctx context.Context, errorCtx *ErrorContext)
 // attemptRecovery attempts to recover from an error using the specified strategy
 func (eh *ErrorHandler) attemptRecovery(ctx context.Context, errorCtx *ErrorContext, strategy *RecoveryStrategy) error {
 	logger := log.FromContext(ctx).WithValues("errorType", errorCtx.ErrorType, "recoveryAction", strategy.RecoveryAction)
-	
+
 	// Check if we've exceeded max retries
 	if errorCtx.RetryCount >= strategy.MaxRetries {
 		logger.Info("Max retries exceeded, triggering manual intervention")
 		return eh.triggerManualIntervention(ctx, errorCtx)
 	}
-	
+
 	// Calculate retry delay with exponential backoff
 	retryDelay := eh.calculateRetryDelay(strategy, errorCtx.RetryCount)
-	
+
 	// Wait for retry delay if this is a retry
 	if errorCtx.RetryCount > 0 {
 		logger.Info("Waiting before retry", "delay", retryDelay, "retryCount", errorCtx.RetryCount)
@@ -314,38 +314,38 @@ func (eh *ErrorHandler) attemptRecovery(ctx context.Context, errorCtx *ErrorCont
 		case <-time.After(retryDelay):
 		}
 	}
-	
+
 	// Increment retry count
 	errorCtx.RetryCount++
 	errorCtx.LastRetryTime = time.Now()
-	
+
 	// Get recovery handler
 	handler := eh.getRecoveryHandler(strategy.RecoveryAction)
 	if handler == nil {
 		logger.Error(fmt.Errorf("no recovery handler found"), "No recovery handler", "recoveryAction", strategy.RecoveryAction)
 		return eh.triggerManualIntervention(ctx, errorCtx)
 	}
-	
+
 	// Create timeout context for recovery
 	recoveryCtx, cancel := context.WithTimeout(ctx, strategy.Timeout)
 	defer cancel()
-	
+
 	logger.Info("Attempting recovery", "recoveryAction", strategy.RecoveryAction, "retryCount", errorCtx.RetryCount)
-	
+
 	// Attempt recovery
 	if err := handler.Handle(recoveryCtx, errorCtx); err != nil {
 		logger.Error(err, "Recovery attempt failed")
-		
+
 		// Update circuit breaker
 		eh.recordFailure(errorCtx)
-		
+
 		// Record failed recovery metrics
 		eh.metricsCollector.RecordCustomMetric("error_recovery_failed_total", 1, map[string]string{
 			"error_type":      string(errorCtx.ErrorType),
 			"recovery_action": string(strategy.RecoveryAction),
 			"component":       errorCtx.Component,
 		})
-		
+
 		// Log recovery failure
 		eh.structuredLogger.LogErrorEvent(recoveryCtx, "error_handler", "recovery_failed", err, map[string]interface{}{
 			"error_type":      errorCtx.ErrorType,
@@ -353,29 +353,29 @@ func (eh *ErrorHandler) attemptRecovery(ctx context.Context, errorCtx *ErrorCont
 			"retry_count":     errorCtx.RetryCount,
 			"max_retries":     strategy.MaxRetries,
 		})
-		
+
 		// Retry if we haven't exceeded max retries
 		if errorCtx.RetryCount < strategy.MaxRetries {
 			return eh.attemptRecovery(ctx, errorCtx, strategy)
 		}
-		
+
 		// Max retries exceeded, trigger manual intervention
 		return eh.triggerManualIntervention(ctx, errorCtx)
 	}
-	
+
 	// Recovery successful
 	logger.Info("Recovery successful", "recoveryAction", strategy.RecoveryAction, "retryCount", errorCtx.RetryCount)
-	
+
 	// Update circuit breaker
 	eh.recordSuccess(errorCtx)
-	
+
 	// Record successful recovery metrics
 	eh.metricsCollector.RecordCustomMetric("error_recovery_success_total", 1, map[string]string{
 		"error_type":      string(errorCtx.ErrorType),
 		"recovery_action": string(strategy.RecoveryAction),
 		"component":       errorCtx.Component,
 	})
-	
+
 	// Log successful recovery
 	eh.structuredLogger.LogSystemEvent(ctx, "error_recovery_success", "info", map[string]interface{}{
 		"error_type":      errorCtx.ErrorType,
@@ -383,25 +383,25 @@ func (eh *ErrorHandler) attemptRecovery(ctx context.Context, errorCtx *ErrorCont
 		"retry_count":     errorCtx.RetryCount,
 		"component":       errorCtx.Component,
 	})
-	
+
 	// Remove from active errors
 	eh.removeActiveError(eh.generateErrorID(errorCtx))
-	
+
 	// Add to history
 	eh.addToHistory(*errorCtx)
-	
+
 	return nil
 }
 
 // triggerManualIntervention triggers manual intervention for critical errors
 func (eh *ErrorHandler) triggerManualIntervention(ctx context.Context, errorCtx *ErrorContext) error {
 	logger := log.FromContext(ctx).WithValues("errorType", errorCtx.ErrorType)
-	
-	logger.Error(errorCtx.Error, "Manual intervention required", 
+
+	logger.Error(errorCtx.Error, "Manual intervention required",
 		"component", errorCtx.Component,
 		"operation", errorCtx.Operation,
 		"retryCount", errorCtx.RetryCount)
-	
+
 	// Send critical alert
 	alert := interfaces.Alert{
 		Title:     fmt.Sprintf("Manual Intervention Required: %s", errorCtx.ErrorType),
@@ -410,42 +410,42 @@ func (eh *ErrorHandler) triggerManualIntervention(ctx context.Context, errorCtx 
 		Component: errorCtx.Component,
 		Timestamp: time.Now(),
 		Labels: map[string]string{
-			"error_type":  string(errorCtx.ErrorType),
-			"component":   errorCtx.Component,
-			"operation":   errorCtx.Operation,
-			"shard_id":    errorCtx.ShardID,
-			"severity":    string(errorCtx.Severity),
+			"error_type": string(errorCtx.ErrorType),
+			"component":  errorCtx.Component,
+			"operation":  errorCtx.Operation,
+			"shard_id":   errorCtx.ShardID,
+			"severity":   string(errorCtx.Severity),
 		},
 		Annotations: map[string]interface{}{
-			"retry_count":    errorCtx.RetryCount,
-			"max_retries":    errorCtx.MaxRetries,
-			"error_message":  errorCtx.Error.Error(),
-			"metadata":       errorCtx.Metadata,
+			"retry_count":   errorCtx.RetryCount,
+			"max_retries":   errorCtx.MaxRetries,
+			"error_message": errorCtx.Error.Error(),
+			"metadata":      errorCtx.Metadata,
 		},
 	}
-	
+
 	if err := eh.alertManager.SendAlert(ctx, alert); err != nil {
 		logger.Error(err, "Failed to send manual intervention alert")
 	}
-	
+
 	// Record manual intervention metrics
 	eh.metricsCollector.RecordCustomMetric("manual_intervention_triggered_total", 1, map[string]string{
 		"error_type": string(errorCtx.ErrorType),
 		"component":  errorCtx.Component,
 		"severity":   string(errorCtx.Severity),
 	})
-	
+
 	// Log manual intervention event
 	eh.structuredLogger.LogSystemEvent(ctx, "manual_intervention_required", "critical", map[string]interface{}{
-		"error_type":     errorCtx.ErrorType,
-		"component":      errorCtx.Component,
-		"operation":      errorCtx.Operation,
-		"retry_count":    errorCtx.RetryCount,
-		"max_retries":    errorCtx.MaxRetries,
-		"error_message":  errorCtx.Error.Error(),
-		"metadata":       errorCtx.Metadata,
+		"error_type":    errorCtx.ErrorType,
+		"component":     errorCtx.Component,
+		"operation":     errorCtx.Operation,
+		"retry_count":   errorCtx.RetryCount,
+		"max_retries":   errorCtx.MaxRetries,
+		"error_message": errorCtx.Error.Error(),
+		"metadata":      errorCtx.Metadata,
 	})
-	
+
 	return fmt.Errorf("manual intervention required for error: %w", errorCtx.Error)
 }
 
@@ -467,7 +467,7 @@ func (eh *ErrorHandler) SetRecoveryStrategy(errorType ErrorType, strategy *Recov
 func (eh *ErrorHandler) GetActiveErrors() map[string]*ErrorContext {
 	eh.mu.RLock()
 	defer eh.mu.RUnlock()
-	
+
 	result := make(map[string]*ErrorContext)
 	for id, errorCtx := range eh.activeErrors {
 		// Create a copy to prevent external modification
@@ -486,7 +486,7 @@ func (eh *ErrorHandler) GetActiveErrors() map[string]*ErrorContext {
 			LastRetryTime: errorCtx.LastRetryTime,
 		}
 	}
-	
+
 	return result
 }
 
@@ -494,7 +494,7 @@ func (eh *ErrorHandler) GetActiveErrors() map[string]*ErrorContext {
 func (eh *ErrorHandler) GetErrorHistory() []ErrorContext {
 	eh.mu.RLock()
 	defer eh.mu.RUnlock()
-	
+
 	// Return a copy to prevent external modification
 	history := make([]ErrorContext, len(eh.errorHistory))
 	copy(history, eh.errorHistory)
@@ -504,10 +504,10 @@ func (eh *ErrorHandler) GetErrorHistory() []ErrorContext {
 // Helper methods
 
 func (eh *ErrorHandler) generateErrorID(errorCtx *ErrorContext) string {
-	return fmt.Sprintf("%s-%s-%s-%d", 
-		errorCtx.ErrorType, 
-		errorCtx.Component, 
-		errorCtx.Operation, 
+	return fmt.Sprintf("%s-%s-%s-%d",
+		errorCtx.ErrorType,
+		errorCtx.Component,
+		errorCtx.Operation,
 		errorCtx.Timestamp.Unix())
 }
 
@@ -538,9 +538,9 @@ func (eh *ErrorHandler) removeActiveError(errorID string) {
 func (eh *ErrorHandler) addToHistory(errorCtx ErrorContext) {
 	eh.mu.Lock()
 	defer eh.mu.Unlock()
-	
+
 	eh.errorHistory = append(eh.errorHistory, errorCtx)
-	
+
 	// Trim history if it exceeds max size
 	if len(eh.errorHistory) > eh.maxHistorySize {
 		eh.errorHistory = eh.errorHistory[len(eh.errorHistory)-eh.maxHistorySize:]
@@ -564,23 +564,23 @@ func (eh *ErrorHandler) shouldTriggerManualIntervention(errorCtx *ErrorContext) 
 	if errorCtx.Severity == ErrorSeverityCritical {
 		return true
 	}
-	
+
 	// Check if this is a repeated error pattern
 	if eh.isRepeatedErrorPattern(errorCtx) {
 		return true
 	}
-	
+
 	return false
 }
 
 func (eh *ErrorHandler) isRepeatedErrorPattern(errorCtx *ErrorContext) bool {
 	eh.mu.RLock()
 	defer eh.mu.RUnlock()
-	
+
 	// Check recent history for similar errors
 	recentThreshold := time.Now().Add(-1 * time.Hour)
 	similarErrorCount := 0
-	
+
 	for _, historyItem := range eh.errorHistory {
 		if historyItem.Timestamp.After(recentThreshold) &&
 			historyItem.ErrorType == errorCtx.ErrorType &&
@@ -588,7 +588,7 @@ func (eh *ErrorHandler) isRepeatedErrorPattern(errorCtx *ErrorContext) bool {
 			similarErrorCount++
 		}
 	}
-	
+
 	// If we've seen this error type more than 5 times in the last hour, trigger manual intervention
 	return similarErrorCount > 5
 }
@@ -596,7 +596,7 @@ func (eh *ErrorHandler) isRepeatedErrorPattern(errorCtx *ErrorContext) bool {
 func (eh *ErrorHandler) handleUnknownError(ctx context.Context, errorCtx *ErrorContext) error {
 	logger := log.FromContext(ctx)
 	logger.Error(errorCtx.Error, "Unknown error type, no recovery strategy available", "errorType", errorCtx.ErrorType)
-	
+
 	// Send alert for unknown error
 	alert := interfaces.Alert{
 		Title:     fmt.Sprintf("Unknown Error Type: %s", errorCtx.ErrorType),
@@ -609,17 +609,17 @@ func (eh *ErrorHandler) handleUnknownError(ctx context.Context, errorCtx *ErrorC
 			"component":  errorCtx.Component,
 		},
 	}
-	
+
 	if err := eh.alertManager.SendAlert(ctx, alert); err != nil {
 		logger.Error(err, "Failed to send unknown error alert")
 	}
-	
+
 	return fmt.Errorf("unknown error type: %s", errorCtx.ErrorType)
 }
 
 func (eh *ErrorHandler) recordErrorMetrics(errorCtx *ErrorContext) {
 	eh.metricsCollector.RecordError(errorCtx.Component, string(errorCtx.ErrorType))
-	
+
 	eh.metricsCollector.RecordCustomMetric("error_total", 1, map[string]string{
 		"error_type": string(errorCtx.ErrorType),
 		"component":  errorCtx.Component,
@@ -630,13 +630,13 @@ func (eh *ErrorHandler) recordErrorMetrics(errorCtx *ErrorContext) {
 
 func (eh *ErrorHandler) logErrorEvent(ctx context.Context, errorCtx *ErrorContext) {
 	eh.structuredLogger.LogErrorEvent(ctx, errorCtx.Component, errorCtx.Operation, errorCtx.Error, map[string]interface{}{
-		"error_type":   errorCtx.ErrorType,
-		"severity":     errorCtx.Severity,
-		"shard_id":     errorCtx.ShardID,
-		"resource_id":  errorCtx.ResourceID,
-		"retry_count":  errorCtx.RetryCount,
-		"max_retries":  errorCtx.MaxRetries,
-		"metadata":     errorCtx.Metadata,
+		"error_type":  errorCtx.ErrorType,
+		"severity":    errorCtx.Severity,
+		"shard_id":    errorCtx.ShardID,
+		"resource_id": errorCtx.ResourceID,
+		"retry_count": errorCtx.RetryCount,
+		"max_retries": errorCtx.MaxRetries,
+		"metadata":    errorCtx.Metadata,
 	})
 }
 
@@ -654,11 +654,11 @@ func NewCircuitBreaker(threshold int, timeout time.Duration) *CircuitBreaker {
 // isCircuitBreakerOpen checks if the circuit breaker is open for a given error context
 func (eh *ErrorHandler) isCircuitBreakerOpen(errorCtx *ErrorContext) bool {
 	key := fmt.Sprintf("%s-%s", errorCtx.Component, errorCtx.ErrorType)
-	
+
 	eh.mu.RLock()
 	cb, exists := eh.circuitBreakers[key]
 	eh.mu.RUnlock()
-	
+
 	if !exists {
 		// Create new circuit breaker
 		cb = NewCircuitBreaker(5, 5*time.Minute) // 5 failures, 5 minute timeout
@@ -666,18 +666,18 @@ func (eh *ErrorHandler) isCircuitBreakerOpen(errorCtx *ErrorContext) bool {
 		eh.circuitBreakers[key] = cb
 		eh.mu.Unlock()
 	}
-	
+
 	return cb.IsOpen()
 }
 
 // recordFailure records a failure in the circuit breaker
 func (eh *ErrorHandler) recordFailure(errorCtx *ErrorContext) {
 	key := fmt.Sprintf("%s-%s", errorCtx.Component, errorCtx.ErrorType)
-	
+
 	eh.mu.RLock()
 	cb, exists := eh.circuitBreakers[key]
 	eh.mu.RUnlock()
-	
+
 	if exists {
 		cb.RecordFailure()
 	}
@@ -686,11 +686,11 @@ func (eh *ErrorHandler) recordFailure(errorCtx *ErrorContext) {
 // recordSuccess records a success in the circuit breaker
 func (eh *ErrorHandler) recordSuccess(errorCtx *ErrorContext) {
 	key := fmt.Sprintf("%s-%s", errorCtx.Component, errorCtx.ErrorType)
-	
+
 	eh.mu.RLock()
 	cb, exists := eh.circuitBreakers[key]
 	eh.mu.RUnlock()
-	
+
 	if exists {
 		cb.RecordSuccess()
 	}
@@ -702,7 +702,7 @@ func (eh *ErrorHandler) handleCircuitBreakerOpen(ctx context.Context, errorCtx *
 	logger.Info("Circuit breaker is open, preventing further recovery attempts",
 		"component", errorCtx.Component,
 		"errorType", errorCtx.ErrorType)
-	
+
 	// Send circuit breaker alert
 	alert := interfaces.Alert{
 		Title:     fmt.Sprintf("Circuit Breaker Open: %s", errorCtx.Component),
@@ -716,17 +716,17 @@ func (eh *ErrorHandler) handleCircuitBreakerOpen(ctx context.Context, errorCtx *
 			"state":      "circuit_breaker_open",
 		},
 	}
-	
+
 	if err := eh.alertManager.SendAlert(ctx, alert); err != nil {
 		logger.Error(err, "Failed to send circuit breaker alert")
 	}
-	
+
 	// Record circuit breaker metrics
 	eh.metricsCollector.RecordCustomMetric("circuit_breaker_open_total", 1, map[string]string{
 		"component":  errorCtx.Component,
 		"error_type": string(errorCtx.ErrorType),
 	})
-	
+
 	return fmt.Errorf("circuit breaker is open for %s in component %s", errorCtx.ErrorType, errorCtx.Component)
 }
 
@@ -736,7 +736,7 @@ func (eh *ErrorHandler) handleCircuitBreakerOpen(ctx context.Context, errorCtx *
 func (cb *CircuitBreaker) IsOpen() bool {
 	cb.mu.RLock()
 	defer cb.mu.RUnlock()
-	
+
 	switch cb.state {
 	case CircuitBreakerOpen:
 		// Check if timeout has passed
@@ -760,10 +760,10 @@ func (cb *CircuitBreaker) IsOpen() bool {
 func (cb *CircuitBreaker) RecordFailure() {
 	cb.mu.Lock()
 	defer cb.mu.Unlock()
-	
+
 	cb.failureCount++
 	cb.lastFailureTime = time.Now()
-	
+
 	if cb.state == CircuitBreakerHalfOpen {
 		// Failed in half-open state, go back to open
 		cb.state = CircuitBreakerOpen
@@ -777,9 +777,9 @@ func (cb *CircuitBreaker) RecordFailure() {
 func (cb *CircuitBreaker) RecordSuccess() {
 	cb.mu.Lock()
 	defer cb.mu.Unlock()
-	
+
 	cb.failureCount = 0
-	
+
 	if cb.state == CircuitBreakerHalfOpen {
 		// Success in half-open state, close the circuit breaker
 		cb.state = CircuitBreakerClosed
@@ -817,7 +817,7 @@ func NewRetryRecoveryHandler(shardManager interfaces.ShardManager) *RetryRecover
 // Handle implements the RecoveryHandler interface for retry actions
 func (h *RetryRecoveryHandler) Handle(ctx context.Context, errorCtx *ErrorContext) error {
 	logger := log.FromContext(ctx).WithValues("recoveryAction", "retry")
-	
+
 	switch errorCtx.ErrorType {
 	case ErrorTypeShardStartup:
 		return h.handleShardStartupRetry(ctx, errorCtx)
@@ -842,13 +842,13 @@ func (h *RetryRecoveryHandler) CanHandle(errorCtx *ErrorContext) bool {
 		ErrorTypeNetworkPartition,
 		ErrorTypeLeaderElection,
 	}
-	
+
 	for _, errorType := range retryableErrors {
 		if errorCtx.ErrorType == errorType {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -856,18 +856,18 @@ func (h *RetryRecoveryHandler) handleShardStartupRetry(ctx context.Context, erro
 	if errorCtx.ShardID == "" {
 		return fmt.Errorf("shard ID is required for shard startup retry")
 	}
-	
+
 	// Check if shard exists and its current status
 	status, err := h.shardManager.GetShardStatus(ctx, errorCtx.ShardID)
 	if err != nil {
 		return fmt.Errorf("failed to get shard status: %w", err)
 	}
-	
+
 	// If shard is already running, consider retry successful
 	if status.Phase == shardv1.ShardPhaseRunning {
 		return nil
 	}
-	
+
 	// If shard is in failed state, attempt to restart it
 	if status.Phase == shardv1.ShardPhaseFailed {
 		// This would typically involve restarting the shard pod
@@ -875,7 +875,7 @@ func (h *RetryRecoveryHandler) handleShardStartupRetry(ctx context.Context, erro
 		_, err := h.shardManager.CheckShardHealth(ctx, errorCtx.ShardID)
 		return err
 	}
-	
+
 	return fmt.Errorf("shard %s is in unexpected phase: %s", errorCtx.ShardID, status.Phase)
 }
 
@@ -885,7 +885,7 @@ func (h *RetryRecoveryHandler) handleMigrationRetry(ctx context.Context, errorCt
 	if errorCtx.ResourceID == "" {
 		return fmt.Errorf("resource ID is required for migration retry")
 	}
-	
+
 	// In a real implementation, this would re-attempt the specific migration
 	// For now, we'll just return success to indicate the retry should continue
 	return nil
@@ -894,10 +894,10 @@ func (h *RetryRecoveryHandler) handleMigrationRetry(ctx context.Context, errorCt
 func (h *RetryRecoveryHandler) handleNetworkPartitionRetry(ctx context.Context, errorCtx *ErrorContext) error {
 	// Network partition retry would typically involve checking connectivity
 	// and waiting for network to recover
-	
+
 	// Simulate network connectivity check
 	time.Sleep(1 * time.Second)
-	
+
 	// In a real implementation, this would check actual network connectivity
 	// For now, we'll assume network has recovered
 	return nil
@@ -924,31 +924,31 @@ func NewRestartRecoveryHandler(shardManager interfaces.ShardManager) *RestartRec
 // Handle implements the RecoveryHandler interface for restart actions
 func (h *RestartRecoveryHandler) Handle(ctx context.Context, errorCtx *ErrorContext) error {
 	logger := log.FromContext(ctx).WithValues("recoveryAction", "restart")
-	
+
 	if errorCtx.ShardID == "" {
 		return fmt.Errorf("shard ID is required for restart recovery")
 	}
-	
+
 	logger.Info("Attempting to restart shard", "shardId", errorCtx.ShardID)
-	
+
 	// Handle failed shard (this will trigger restart logic)
 	if err := h.shardManager.HandleFailedShard(ctx, errorCtx.ShardID); err != nil {
 		return fmt.Errorf("failed to handle failed shard for restart: %w", err)
 	}
-	
+
 	// Wait a moment for restart to take effect
 	time.Sleep(5 * time.Second)
-	
+
 	// Check if shard is now healthy
 	healthStatus, err := h.shardManager.CheckShardHealth(ctx, errorCtx.ShardID)
 	if err != nil {
 		return fmt.Errorf("failed to check shard health after restart: %w", err)
 	}
-	
+
 	if !healthStatus.Healthy {
 		return fmt.Errorf("shard %s is still unhealthy after restart: %s", errorCtx.ShardID, healthStatus.Message)
 	}
-	
+
 	logger.Info("Shard restart successful", "shardId", errorCtx.ShardID)
 	return nil
 }
@@ -958,13 +958,13 @@ func (h *RestartRecoveryHandler) CanHandle(errorCtx *ErrorContext) bool {
 	restartableErrors := []ErrorType{
 		ErrorTypeShardRuntime,
 	}
-	
+
 	for _, errorType := range restartableErrors {
 		if errorCtx.ErrorType == errorType {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -998,59 +998,59 @@ func (h *ScaleRecoveryHandler) CanHandle(errorCtx *ErrorContext) bool {
 		ErrorTypeResourceExhaustion,
 		ErrorTypeSystemOverload,
 	}
-	
+
 	for _, errorType := range scalableErrors {
 		if errorCtx.ErrorType == errorType {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
 func (h *ScaleRecoveryHandler) handleResourceExhaustionScale(ctx context.Context, errorCtx *ErrorContext) error {
 	logger := log.FromContext(ctx)
-	
+
 	// Get current shard count
 	shards, err := h.shardManager.ListShards(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to list shards: %w", err)
 	}
-	
+
 	currentCount := len(shards)
 	targetCount := currentCount + 1
-	
+
 	logger.Info("Scaling up due to resource exhaustion", "from", currentCount, "to", targetCount)
-	
+
 	// Scale up by one shard
 	if err := h.shardManager.ScaleUp(ctx, targetCount); err != nil {
 		return fmt.Errorf("failed to scale up: %w", err)
 	}
-	
+
 	logger.Info("Scale up completed", "newShardCount", targetCount)
 	return nil
 }
 
 func (h *ScaleRecoveryHandler) handleSystemOverloadScale(ctx context.Context, errorCtx *ErrorContext) error {
 	logger := log.FromContext(ctx)
-	
+
 	// Get current shard count
 	shards, err := h.shardManager.ListShards(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to list shards: %w", err)
 	}
-	
+
 	currentCount := len(shards)
 	// Scale up more aggressively for system overload
 	targetCount := currentCount + 2
-	
+
 	logger.Info("Scaling up due to system overload", "from", currentCount, "to", targetCount)
-	
+
 	// Scale up by two shards
 	if err := h.shardManager.ScaleUp(ctx, targetCount); err != nil {
 		return fmt.Errorf("failed to scale up: %w", err)
 	}
-	
+
 	logger.Info("Scale up completed", "newShardCount", targetCount)
 	return nil
 }
@@ -1072,19 +1072,19 @@ func NewMigrateRecoveryHandler(resourceMigrator interfaces.ResourceMigrator, sha
 // Handle implements the RecoveryHandler interface for migrate actions
 func (h *MigrateRecoveryHandler) Handle(ctx context.Context, errorCtx *ErrorContext) error {
 	logger := log.FromContext(ctx).WithValues("recoveryAction", "migrate")
-	
+
 	if errorCtx.ShardID == "" {
 		return fmt.Errorf("shard ID is required for migration recovery")
 	}
-	
+
 	logger.Info("Attempting resource migration recovery", "shardId", errorCtx.ShardID)
-	
+
 	// Get the failed shard
 	shardStatus, err := h.shardManager.GetShardStatus(ctx, errorCtx.ShardID)
 	if err != nil {
 		return fmt.Errorf("failed to get shard status: %w", err)
 	}
-	
+
 	// If shard has resources, migrate them
 	if len(shardStatus.AssignedResources) > 0 {
 		// Get healthy target shards
@@ -1092,27 +1092,27 @@ func (h *MigrateRecoveryHandler) Handle(ctx context.Context, errorCtx *ErrorCont
 		if err != nil {
 			return fmt.Errorf("failed to list shards: %w", err)
 		}
-		
+
 		var targetShards []*shardv1.ShardInstance
 		for _, shard := range allShards {
 			if shard.Spec.ShardID != errorCtx.ShardID && shard.IsHealthy() && shard.IsActive() {
 				targetShards = append(targetShards, shard)
 			}
 		}
-		
+
 		if len(targetShards) == 0 {
 			return fmt.Errorf("no healthy target shards available for migration")
 		}
-		
+
 		// Create and execute migration plan for each resource
 		for i, resourceId := range shardStatus.AssignedResources {
 			targetShard := targetShards[i%len(targetShards)]
-			
+
 			resource := &interfaces.Resource{
 				ID:   resourceId,
 				Type: "generic", // In a real implementation, determine actual type
 			}
-			
+
 			plan, err := h.resourceMigrator.CreateMigrationPlan(
 				ctx,
 				errorCtx.ShardID,
@@ -1122,15 +1122,15 @@ func (h *MigrateRecoveryHandler) Handle(ctx context.Context, errorCtx *ErrorCont
 			if err != nil {
 				return fmt.Errorf("failed to create migration plan: %w", err)
 			}
-			
+
 			if err := h.resourceMigrator.ExecuteMigration(ctx, plan); err != nil {
 				return fmt.Errorf("failed to execute migration: %w", err)
 			}
 		}
-		
+
 		logger.Info("Resource migration completed", "resourceCount", len(shardStatus.AssignedResources))
 	}
-	
+
 	return nil
 }
 
@@ -1140,12 +1140,12 @@ func (h *MigrateRecoveryHandler) CanHandle(errorCtx *ErrorContext) bool {
 		ErrorTypeMigrationFailure,
 		ErrorTypeShardRuntime,
 	}
-	
+
 	for _, errorType := range migratableErrors {
 		if errorCtx.ErrorType == errorType {
 			return true
 		}
 	}
-	
+
 	return false
 }

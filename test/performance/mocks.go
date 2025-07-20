@@ -336,16 +336,16 @@ func NewSystemProfiler(sampleInterval time.Duration) *SystemProfiler {
 func (sp *SystemProfiler) Start() {
 	sp.startTime = time.Now()
 	goruntime.ReadMemStats(&sp.startMemStats)
-	
+
 	go sp.sampleLoop()
 }
 
 func (sp *SystemProfiler) Stop() ProfileReport {
 	close(sp.stopCh)
-	
+
 	var endMemStats goruntime.MemStats
 	goruntime.ReadMemStats(&endMemStats)
-	
+
 	return ProfileReport{
 		Duration:        time.Since(sp.startTime),
 		StartMemAllocMB: float64(sp.startMemStats.Alloc) / 1024 / 1024,
@@ -359,7 +359,7 @@ func (sp *SystemProfiler) Stop() ProfileReport {
 func (sp *SystemProfiler) sampleLoop() {
 	ticker := time.NewTicker(sp.sampleInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-sp.stopCh:
@@ -367,7 +367,7 @@ func (sp *SystemProfiler) sampleLoop() {
 		case <-ticker.C:
 			var memStats goruntime.MemStats
 			goruntime.ReadMemStats(&memStats)
-			
+
 			sample := ProfileSample{
 				Timestamp:    time.Now(),
 				MemAllocMB:   float64(memStats.Alloc) / 1024 / 1024,
@@ -375,7 +375,7 @@ func (sp *SystemProfiler) sampleLoop() {
 				NumGoroutine: goruntime.NumGoroutine(),
 				NumGC:        memStats.NumGC,
 			}
-			
+
 			sp.samples = append(sp.samples, sample)
 		}
 	}

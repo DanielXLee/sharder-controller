@@ -1,0 +1,30 @@
+# Prometheus configuration for Shard Controller
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+scrape_configs:
+  # Shard Controller Manager
+  - job_name: 'shard-manager'
+    static_configs:
+      - targets: ['shard-manager:8080']
+    metrics_path: /metrics
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # Shard Controller Worker
+  - job_name: 'shard-worker'
+    static_configs:
+      - targets: ['shard-worker:8080']
+    metrics_path: /metrics
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

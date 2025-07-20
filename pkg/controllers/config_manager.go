@@ -26,7 +26,7 @@ type ConfigManager struct {
 	client  client.Client
 	manager manager.Manager
 	config  *config.Config
-	
+
 	mu                sync.RWMutex
 	shardConfig       *shardv1.ShardConfig
 	configMapData     map[string]string
@@ -35,20 +35,20 @@ type ConfigManager struct {
 	configMapWatchCtx context.Context
 	configMapCancel   context.CancelFunc
 	callbacks         []func(*shardv1.ShardConfig)
-	
+
 	// Configuration sources
-	configMapName      string
-	shardConfigName    string
-	enableConfigMap    bool
-	enableHotReload    bool
+	configMapName   string
+	shardConfigName string
+	enableConfigMap bool
+	enableHotReload bool
 }
 
 // ConfigManagerOptions defines options for creating a ConfigManager
 type ConfigManagerOptions struct {
-	ConfigMapName      string
-	ShardConfigName    string
-	EnableConfigMap    bool
-	EnableHotReload    bool
+	ConfigMapName   string
+	ShardConfigName string
+	EnableConfigMap bool
+	EnableHotReload bool
 }
 
 // DefaultConfigManagerOptions returns default options
@@ -146,7 +146,7 @@ func (cm *ConfigManager) ValidateConfig(config *shardv1.ShardConfig) error {
 func (cm *ConfigManager) WatchConfigChanges(ctx context.Context, callback func(*shardv1.ShardConfig)) error {
 	// Add the callback to the list of callbacks
 	cm.AddConfigChangeCallback(callback)
-	
+
 	// Start hot reload if not already started
 	return cm.StartHotReload(ctx)
 }
@@ -398,11 +398,11 @@ func (cm *ConfigManager) RemoveAllCallbacks() {
 func (cm *ConfigManager) GetCurrentConfig() *shardv1.ShardConfig {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
-	
+
 	if cm.shardConfig == nil {
 		return nil
 	}
-	
+
 	// Return a deep copy to prevent external modifications
 	return cm.shardConfig.DeepCopy()
 }
@@ -573,7 +573,7 @@ func (cm *ConfigManager) SetManager(mgr manager.Manager) {
 func (cm *ConfigManager) GetConfigMapData() map[string]string {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
-	
+
 	result := make(map[string]string)
 	for k, v := range cm.configMapData {
 		result[k] = v

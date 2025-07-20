@@ -49,11 +49,11 @@ func NewClientSet(cfg *config.Config) (*ClientSet, error) {
 // NewManagerWithClientSet creates a controller-runtime manager with the given ClientSet
 func NewManagerWithClientSet(cs *ClientSet, cfg *config.Config) (manager.Manager, error) {
 	mgr, err := manager.New(cs.Config, manager.Options{
-		LeaderElection:     cfg.LeaderElection.Enabled,
-		LeaderElectionID:   cfg.LeaderElection.ResourceName,
-		LeaseDuration:      &cfg.LeaderElection.LeaseDuration,
-		RenewDeadline:      &cfg.LeaderElection.RenewDeadline,
-		RetryPeriod:        &cfg.LeaderElection.RetryPeriod,
+		LeaderElection:   cfg.LeaderElection.Enabled,
+		LeaderElectionID: cfg.LeaderElection.ResourceName,
+		LeaseDuration:    &cfg.LeaderElection.LeaseDuration,
+		RenewDeadline:    &cfg.LeaderElection.RenewDeadline,
+		RetryPeriod:      &cfg.LeaderElection.RetryPeriod,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create controller manager: %w", err)

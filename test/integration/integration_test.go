@@ -39,11 +39,11 @@ type IntegrationTestSuite struct {
 	cancel    context.CancelFunc
 
 	// Test components
-	shardManager    interfaces.ShardManager
-	loadBalancer    interfaces.LoadBalancer
-	healthChecker   interfaces.HealthChecker
+	shardManager     interfaces.ShardManager
+	loadBalancer     interfaces.LoadBalancer
+	healthChecker    interfaces.HealthChecker
 	resourceMigrator interfaces.ResourceMigrator
-	configManager   interfaces.ConfigManager
+	configManager    interfaces.ConfigManager
 }
 
 func TestIntegrationSuite(t *testing.T) {
@@ -100,7 +100,7 @@ func (suite *IntegrationTestSuite) setupTestComponents() {
 	cfg := config.DefaultConfig()
 
 	var err error
-	
+
 	// Initialize health checker
 	suite.healthChecker, err = controllers.NewHealthChecker(suite.k8sClient, cfg.HealthCheck)
 	require.NoError(suite.T(), err)
@@ -298,7 +298,7 @@ func (suite *IntegrationTestSuite) TestShardScaling() {
 	shardList := &shardv1.ShardInstanceList{}
 	err = suite.k8sClient.List(suite.ctx, shardList)
 	require.NoError(suite.T(), err)
-	
+
 	for _, shard := range shardList.Items {
 		assert.Contains(suite.T(), []shardv1.ShardPhase{
 			shardv1.ShardPhasePending,
@@ -317,7 +317,7 @@ func (suite *IntegrationTestSuite) TestShardScaling() {
 		if err != nil {
 			return false
 		}
-		
+
 		runningCount := 0
 		for _, shard := range shardList.Items {
 			if shard.Status.Phase == shardv1.ShardPhaseRunning {

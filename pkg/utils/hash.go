@@ -28,7 +28,7 @@ func NewConsistentHash(replicas int) *ConsistentHash {
 func (ch *ConsistentHash) AddNode(node string) {
 	ch.mu.Lock()
 	defer ch.mu.Unlock()
-	
+
 	for i := 0; i < ch.replicas; i++ {
 		hash := ch.hashKey(fmt.Sprintf("%s:%d", node, i))
 		ch.hashRing[hash] = node
@@ -43,11 +43,11 @@ func (ch *ConsistentHash) AddNode(node string) {
 func (ch *ConsistentHash) RemoveNode(node string) {
 	ch.mu.Lock()
 	defer ch.mu.Unlock()
-	
+
 	for i := 0; i < ch.replicas; i++ {
 		hash := ch.hashKey(fmt.Sprintf("%s:%d", node, i))
 		delete(ch.hashRing, hash)
-		
+
 		// Remove from sorted hashes
 		for j, h := range ch.sortedHashes {
 			if h == hash {
@@ -62,23 +62,23 @@ func (ch *ConsistentHash) RemoveNode(node string) {
 func (ch *ConsistentHash) GetNode(key string) string {
 	ch.mu.RLock()
 	defer ch.mu.RUnlock()
-	
+
 	if len(ch.sortedHashes) == 0 {
 		return ""
 	}
-	
+
 	hash := ch.hashKey(key)
-	
+
 	// Find the first node with hash >= key hash
 	idx := sort.Search(len(ch.sortedHashes), func(i int) bool {
 		return ch.sortedHashes[i] >= hash
 	})
-	
+
 	// If no node found, wrap around to the first node
 	if idx == len(ch.sortedHashes) {
 		idx = 0
 	}
-	
+
 	return ch.hashRing[ch.sortedHashes[idx]]
 }
 
@@ -86,26 +86,26 @@ func (ch *ConsistentHash) GetNode(key string) string {
 func (ch *ConsistentHash) GetNodes(key string, count int) []string {
 	ch.mu.RLock()
 	defer ch.mu.RUnlock()
-	
+
 	if len(ch.sortedHashes) == 0 || count <= 0 {
 		return nil
 	}
-	
+
 	hash := ch.hashKey(key)
 	nodes := make([]string, 0, count)
 	seen := make(map[string]bool)
-	
+
 	// Find the starting position
 	idx := sort.Search(len(ch.sortedHashes), func(i int) bool {
 		return ch.sortedHashes[i] >= hash
 	})
-	
+
 	// Collect unique nodes
 	for len(nodes) < count && len(seen) < len(ch.getUniqueNodes()) {
 		if idx >= len(ch.sortedHashes) {
 			idx = 0
 		}
-		
+
 		node := ch.hashRing[ch.sortedHashes[idx]]
 		if !seen[node] {
 			nodes = append(nodes, node)
@@ -113,7 +113,7 @@ func (ch *ConsistentHash) GetNodes(key string, count int) []string {
 		}
 		idx++
 	}
-	
+
 	return nodes
 }
 
@@ -134,12 +134,12 @@ func (ch *ConsistentHash) getUniqueNodes() []string {
 	for _, node := range ch.hashRing {
 		nodeSet[node] = true
 	}
-	
+
 	nodes := make([]string, 0, len(nodeSet))
 	for node := range nodeSet {
 		nodes = append(nodes, node)
 	}
-	
+
 	return nodes
 }
 
@@ -166,21 +166,21 @@ func (ch *ConsistentHash) GetHashForKey(key string) uint32 {
 func (ch *ConsistentHash) GetNodeWithHash(hash uint32) string {
 	ch.mu.RLock()
 	defer ch.mu.RUnlock()
-	
+
 	if len(ch.sortedHashes) == 0 {
 		return ""
 	}
-	
+
 	// Find the first node with hash >= given hash
 	idx := sort.Search(len(ch.sortedHashes), func(i int) bool {
 		return ch.sortedHashes[i] >= hash
 	})
-	
+
 	// If no node found, wrap around to the first node
 	if idx == len(ch.sortedHashes) {
 		idx = 0
 	}
-	
+
 	return ch.hashRing[ch.sortedHashes[idx]]
 }
 
@@ -188,22 +188,22 @@ func (ch *ConsistentHash) GetNodeWithHash(hash uint32) string {
 func (ch *ConsistentHash) GetLoadDistribution() map[string]float64 {
 	ch.mu.RLock()
 	defer ch.mu.RUnlock()
-	
+
 	if len(ch.sortedHashes) == 0 {
 		return nil
 	}
-	
+
 	distribution := make(map[string]float64)
 	uniqueNodes := ch.getUniqueNodes()
-	
+
 	// Initialize all nodes with 0
 	for _, node := range uniqueNodes {
 		distribution[node] = 0
 	}
-	
+
 	// Calculate the hash space each node is responsible for
 	totalSpace := uint64(^uint32(0)) + 1 // 2^32
-	
+
 	for i, hash := range ch.sortedHashes {
 		var spaceSize uint64
 		if i == 0 {
@@ -215,10 +215,10 @@ func (ch *ConsistentHash) GetLoadDistribution() map[string]float64 {
 			prevHash := ch.sortedHashes[i-1]
 			spaceSize = uint64(hash) - uint64(prevHash)
 		}
-		
+
 		node := ch.hashRing[hash]
 		distribution[node] += float64(spaceSize) / float64(totalSpace)
 	}
-	
+
 	return distribution
 }

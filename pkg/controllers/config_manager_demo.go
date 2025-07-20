@@ -52,7 +52,7 @@ func DemoConfigManager() error {
 
 	// 2. Demonstrate configuration validation
 	fmt.Println("\n2. Testing configuration validation...")
-	
+
 	// Valid config
 	validConfig := &shardv1.ShardConfig{
 		Spec: shardv1.ShardConfigSpec{
@@ -65,7 +65,7 @@ func DemoConfigManager() error {
 			GracefulShutdownTimeout: metav1.Duration{Duration: 30 * time.Second},
 		},
 	}
-	
+
 	if err := cm.ValidateConfig(validConfig); err != nil {
 		fmt.Printf("   Unexpected validation error: %v\n", err)
 	} else {
@@ -84,7 +84,7 @@ func DemoConfigManager() error {
 			GracefulShutdownTimeout: metav1.Duration{Duration: 30 * time.Second},
 		},
 	}
-	
+
 	if err := cm.ValidateConfig(invalidConfig); err != nil {
 		fmt.Printf("   ✓ Invalid configuration rejected: %v\n", err)
 	} else {
@@ -100,7 +100,7 @@ func DemoConfigManager() error {
 			ScaleUpThreshold: 0, // Will be set to default
 		},
 	}
-	
+
 	cm.applyDefaults(configWithDefaults)
 	fmt.Printf("   After applying defaults: MinShards=%d, MaxShards=%d, ScaleUpThreshold=%.2f\n",
 		configWithDefaults.Spec.MinShards, configWithDefaults.Spec.MaxShards, configWithDefaults.Spec.ScaleUpThreshold)
@@ -112,7 +112,7 @@ func DemoConfigManager() error {
 		"maxShards":        "12",
 		"scaleUpThreshold": "0.85",
 	}
-	
+
 	if err := cm.UpdateConfigMap(ctx, configMapData); err != nil {
 		fmt.Printf("   Failed to update ConfigMap: %v\n", err)
 	} else {
@@ -122,14 +122,14 @@ func DemoConfigManager() error {
 	// 5. Demonstrate callback registration
 	fmt.Println("\n5. Testing configuration change callbacks...")
 	callbackExecuted := false
-	
+
 	callback := func(config *shardv1.ShardConfig) {
 		callbackExecuted = true
 		fmt.Printf("   ✓ Callback executed with config: MinShards=%d\n", config.Spec.MinShards)
 	}
-	
+
 	cm.AddConfigChangeCallback(callback)
-	
+
 	// Simulate a configuration change
 	testConfig := &shardv1.ShardConfig{
 		ObjectMeta: metav1.ObjectMeta{Name: "test-config", Namespace: cfg.Namespace},
@@ -143,12 +143,12 @@ func DemoConfigManager() error {
 			GracefulShutdownTimeout: metav1.Duration{Duration: 45 * time.Second},
 		},
 	}
-	
+
 	cm.handleConfigChange(testConfig)
-	
+
 	// Wait for callback to execute
 	time.Sleep(100 * time.Millisecond)
-	
+
 	if callbackExecuted {
 		fmt.Println("   ✓ Configuration change callback executed successfully")
 	} else {

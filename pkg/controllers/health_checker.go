@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	shardv1 "github.com/k8s-shard-controller/pkg/apis/shard/v1"
 	"github.com/k8s-shard-controller/pkg/config"
@@ -19,7 +19,7 @@ import (
 type HealthChecker struct {
 	client client.Client
 	config config.HealthCheckConfig
-	
+
 	mu              sync.RWMutex
 	shardStatuses   map[string]*shardv1.HealthStatus
 	failureHistory  map[string][]time.Time // Track failure timestamps for each shard
@@ -27,7 +27,7 @@ type HealthChecker struct {
 	checkContext    context.Context
 	checkCancel     context.CancelFunc
 	isChecking      bool
-	
+
 	// Callbacks for shard state changes
 	onShardFailedCallback    func(ctx context.Context, shardId string) error
 	onShardRecoveredCallback func(ctx context.Context, shardId string) error
@@ -157,14 +157,14 @@ func (hc *HealthChecker) CheckHealth(ctx context.Context, shard *shardv1.ShardIn
 func (hc *HealthChecker) trackFailure(shardId string, timestamp time.Time) {
 	hc.mu.Lock()
 	defer hc.mu.Unlock()
-	
+
 	if hc.failureHistory[shardId] == nil {
 		hc.failureHistory[shardId] = make([]time.Time, 0)
 	}
-	
+
 	// Add new failure timestamp
 	hc.failureHistory[shardId] = append(hc.failureHistory[shardId], timestamp)
-	
+
 	// Keep only recent failures (last hour)
 	cutoff := timestamp.Add(-time.Hour)
 	filtered := make([]time.Time, 0)
@@ -180,14 +180,14 @@ func (hc *HealthChecker) trackFailure(shardId string, timestamp time.Time) {
 func (hc *HealthChecker) trackRecovery(shardId string, timestamp time.Time) {
 	hc.mu.Lock()
 	defer hc.mu.Unlock()
-	
+
 	if hc.recoveryHistory[shardId] == nil {
 		hc.recoveryHistory[shardId] = make([]time.Time, 0)
 	}
-	
+
 	// Add new recovery timestamp
 	hc.recoveryHistory[shardId] = append(hc.recoveryHistory[shardId], timestamp)
-	
+
 	// Keep only recent recoveries (last hour)
 	cutoff := timestamp.Add(-time.Hour)
 	filtered := make([]time.Time, 0)
@@ -235,7 +235,7 @@ func (hc *HealthChecker) StartHealthChecking(ctx context.Context, interval time.
 // checkAllShards lists all shards and checks their health with automatic failure handling
 func (hc *HealthChecker) checkAllShards(ctx context.Context) {
 	logger := log.FromContext(ctx)
-	
+
 	shardList := &shardv1.ShardInstanceList{}
 	if err := hc.client.List(ctx, shardList); err != nil {
 		logger.Error(err, "Failed to list shards for health checking")
@@ -255,7 +255,7 @@ func (hc *HealthChecker) checkAllShards(ctx context.Context) {
 // checkAndUpdateShardHealth checks a single shard's health and handles state transitions
 func (hc *HealthChecker) checkAndUpdateShardHealth(ctx context.Context, shard *shardv1.ShardInstance) error {
 	logger := log.FromContext(ctx).WithValues("shardId", shard.Spec.ShardID)
-	
+
 	// Check the shard's health
 	healthStatus, err := hc.CheckHealth(ctx, shard)
 	if err != nil {
@@ -280,8 +280,8 @@ func (hc *HealthChecker) checkAndUpdateShardHealth(ctx context.Context, shard *s
 		return fmt.Errorf("failed to update shard status: %w", err)
 	}
 
-	logger.V(1).Info("Updated shard health status", 
-		"healthy", healthStatus.Healthy, 
+	logger.V(1).Info("Updated shard health status",
+		"healthy", healthStatus.Healthy,
 		"errorCount", healthStatus.ErrorCount,
 		"message", healthStatus.Message)
 
@@ -296,23 +296,23 @@ func (hc *HealthChecker) handleHealthStateTransition(ctx context.Context, shard 
 	// Case 1: Shard became unhealthy (failure detected)
 	if previouslyHealthy && !currentlyHealthy {
 		logger.Info("Shard transitioned from healthy to unhealthy")
-		
+
 		// Check if we've reached the failure threshold
 		if shard.Status.HealthStatus.ErrorCount >= hc.config.FailureThreshold {
-			logger.Info("Shard reached failure threshold, marking as failed", 
+			logger.Info("Shard reached failure threshold, marking as failed",
 				"errorCount", shard.Status.HealthStatus.ErrorCount,
 				"threshold", hc.config.FailureThreshold)
-			
+
 			// Transition to failed state
 			if err := shard.TransitionTo(shardv1.ShardPhaseFailed); err != nil {
 				return fmt.Errorf("failed to transition shard to failed state: %w", err)
 			}
-			
+
 			// Call failure callback if set
 			hc.mu.RLock()
 			callback := hc.onShardFailedCallback
 			hc.mu.RUnlock()
-			
+
 			if callback != nil {
 				if err := callback(ctx, shardId); err != nil {
 					logger.Error(err, "Failure callback returned error")
@@ -324,20 +324,20 @@ func (hc *HealthChecker) handleHealthStateTransition(ctx context.Context, shard 
 	// Case 2: Shard recovered (became healthy)
 	if !previouslyHealthy && currentlyHealthy {
 		logger.Info("Shard transitioned from unhealthy to healthy")
-		
+
 		// If shard was in failed state, transition back to running
 		if shard.Status.Phase == shardv1.ShardPhaseFailed {
 			logger.Info("Recovering failed shard to running state")
-			
+
 			if err := shard.TransitionTo(shardv1.ShardPhaseRunning); err != nil {
 				return fmt.Errorf("failed to transition shard to running state: %w", err)
 			}
-			
+
 			// Call recovery callback if set
 			hc.mu.RLock()
 			callback := hc.onShardRecoveredCallback
 			hc.mu.RUnlock()
-			
+
 			if callback != nil {
 				if err := callback(ctx, shardId); err != nil {
 					logger.Error(err, "Recovery callback returned error")
@@ -353,15 +353,15 @@ func (hc *HealthChecker) handleHealthStateTransition(ctx context.Context, shard 
 func (hc *HealthChecker) StopHealthChecking() error {
 	hc.mu.Lock()
 	defer hc.mu.Unlock()
-	
+
 	if !hc.isChecking {
 		return nil
 	}
-	
+
 	if hc.checkCancel != nil {
 		hc.checkCancel()
 	}
-	
+
 	hc.isChecking = false
 	return nil
 }
@@ -463,12 +463,12 @@ func (hc *HealthChecker) ReportHeartbeat(ctx context.Context, shardId string) er
 func (hc *HealthChecker) GetShardHealthStatus(shardId string) (*shardv1.HealthStatus, bool) {
 	hc.mu.RLock()
 	defer hc.mu.RUnlock()
-	
+
 	status, exists := hc.shardStatuses[shardId]
 	if !exists {
 		return nil, false
 	}
-	
+
 	// Return a copy to prevent external modification
 	statusCopy := &shardv1.HealthStatus{
 		Healthy:    status.Healthy,
@@ -476,7 +476,7 @@ func (hc *HealthChecker) GetShardHealthStatus(shardId string) (*shardv1.HealthSt
 		ErrorCount: status.ErrorCount,
 		Message:    status.Message,
 	}
-	
+
 	return statusCopy, true
 }
 
@@ -484,12 +484,12 @@ func (hc *HealthChecker) GetShardHealthStatus(shardId string) (*shardv1.HealthSt
 func (hc *HealthChecker) GetFailureHistory(shardId string) []time.Time {
 	hc.mu.RLock()
 	defer hc.mu.RUnlock()
-	
+
 	history, exists := hc.failureHistory[shardId]
 	if !exists {
 		return nil
 	}
-	
+
 	// Return a copy to prevent external modification
 	historyCopy := make([]time.Time, len(history))
 	copy(historyCopy, history)
@@ -500,12 +500,12 @@ func (hc *HealthChecker) GetFailureHistory(shardId string) []time.Time {
 func (hc *HealthChecker) GetRecoveryHistory(shardId string) []time.Time {
 	hc.mu.RLock()
 	defer hc.mu.RUnlock()
-	
+
 	history, exists := hc.recoveryHistory[shardId]
 	if !exists {
 		return nil
 	}
-	
+
 	// Return a copy to prevent external modification
 	historyCopy := make([]time.Time, len(history))
 	copy(historyCopy, history)
@@ -516,7 +516,7 @@ func (hc *HealthChecker) GetRecoveryHistory(shardId string) []time.Time {
 func (hc *HealthChecker) GetHealthSummary() map[string]*shardv1.HealthStatus {
 	hc.mu.RLock()
 	defer hc.mu.RUnlock()
-	
+
 	summary := make(map[string]*shardv1.HealthStatus)
 	for shardId, status := range hc.shardStatuses {
 		summary[shardId] = &shardv1.HealthStatus{
@@ -526,7 +526,7 @@ func (hc *HealthChecker) GetHealthSummary() map[string]*shardv1.HealthStatus {
 			Message:    status.Message,
 		}
 	}
-	
+
 	return summary
 }
 
@@ -540,14 +540,14 @@ func (hc *HealthChecker) IsShardHealthy(shardId string) bool {
 func (hc *HealthChecker) GetUnhealthyShards() []string {
 	hc.mu.RLock()
 	defer hc.mu.RUnlock()
-	
+
 	var unhealthy []string
 	for shardId, status := range hc.shardStatuses {
 		if !status.Healthy {
 			unhealthy = append(unhealthy, shardId)
 		}
 	}
-	
+
 	return unhealthy
 }
 
@@ -567,7 +567,7 @@ func (hc *HealthChecker) CheckShardHealth(ctx context.Context, shardId string) (
 func (hc *HealthChecker) CleanupShardData(shardId string) {
 	hc.mu.Lock()
 	defer hc.mu.Unlock()
-	
+
 	delete(hc.shardStatuses, shardId)
 	delete(hc.failureHistory, shardId)
 	delete(hc.recoveryHistory, shardId)

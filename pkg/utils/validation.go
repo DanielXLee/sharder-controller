@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	shardv1 "github.com/k8s-shard-controller/pkg/apis/shard/v1"
 	"github.com/k8s-shard-controller/pkg/config"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // IsShardHealthy checks if a shard is in a healthy and operational state.
@@ -18,7 +18,7 @@ func IsShardHealthy(status *shardv1.ShardInstanceStatus) bool {
 	// A shard is healthy if it's in the Running phase and its health status is marked as healthy.
 	isPhaseRunning := status.Phase == shardv1.ShardPhaseRunning
 	isHealthStatusOk := status.HealthStatus != nil && status.HealthStatus.Healthy
-	
+
 	// Check if heartbeat is fresh (within last 2 minutes)
 	heartbeatFresh := true
 	if !status.LastHeartbeat.IsZero() {
@@ -176,7 +176,7 @@ func ValidateHashRanges(ranges []*shardv1.HashRange) error {
 		next := sortedRanges[i+1]
 
 		if current.End >= next.Start {
-			return fmt.Errorf("hash ranges overlap: [%d-%d] and [%d-%d]", 
+			return fmt.Errorf("hash ranges overlap: [%d-%d] and [%d-%d]",
 				current.Start, current.End, next.Start, next.End)
 		}
 	}
@@ -245,8 +245,8 @@ func ValidateMigrationPlan(plan *shardv1.MigrationPlan) error {
 // IsValidShardPhase checks if a shard phase is valid
 func IsValidShardPhase(phase shardv1.ShardPhase) bool {
 	switch phase {
-	case shardv1.ShardPhasePending, shardv1.ShardPhaseRunning, shardv1.ShardPhaseDraining, 
-		 shardv1.ShardPhaseFailed, shardv1.ShardPhaseTerminated:
+	case shardv1.ShardPhasePending, shardv1.ShardPhaseRunning, shardv1.ShardPhaseDraining,
+		shardv1.ShardPhaseFailed, shardv1.ShardPhaseTerminated:
 		return true
 	default:
 		return false
@@ -285,10 +285,10 @@ func CalculateLoadScore(metrics *shardv1.LoadMetrics) float64 {
 		queueScore = 1.0
 	}
 
-	return cpuWeight*metrics.CPUUsage + 
-		   memoryWeight*metrics.MemoryUsage + 
-		   resourceWeight*resourceScore + 
-		   queueWeight*queueScore
+	return cpuWeight*metrics.CPUUsage +
+		memoryWeight*metrics.MemoryUsage +
+		resourceWeight*resourceScore +
+		queueWeight*queueScore
 }
 
 // convertToShardConfigSpec converts config.ShardConfig to shardv1.ShardConfigSpec

@@ -27,11 +27,11 @@ type MetricsCollector struct {
 	shardHealthVec         *prometheus.GaugeVec
 
 	// System metrics
-	totalResourcesGauge     prometheus.Gauge
-	migrationCounterVec     *prometheus.CounterVec
-	migrationDurationVec    *prometheus.HistogramVec
+	totalResourcesGauge      prometheus.Gauge
+	migrationCounterVec      *prometheus.CounterVec
+	migrationDurationVec     *prometheus.HistogramVec
 	scaleOperationCounterVec *prometheus.CounterVec
-	errorCounterVec         *prometheus.CounterVec
+	errorCounterVec          *prometheus.CounterVec
 
 	// Performance metrics
 	operationDurationVec *prometheus.HistogramVec
@@ -199,11 +199,11 @@ func (mc *MetricsCollector) CollectShardMetrics(shard *shardv1.ShardInstance) er
 	mc.shardHealthVec.WithLabelValues(shardID).Set(healthValue)
 
 	mc.logger.WithFields(logrus.Fields{
-		"shard_id": shardID,
-		"load":     shard.Status.Load,
+		"shard_id":  shardID,
+		"load":      shard.Status.Load,
 		"resources": len(shard.Status.AssignedResources),
-		"status":   status,
-		"healthy":  healthValue == 1.0,
+		"status":    status,
+		"healthy":   healthValue == 1.0,
 	}).Debug("Collected shard metrics")
 
 	return nil
@@ -216,8 +216,8 @@ func (mc *MetricsCollector) CollectSystemMetrics(shards []*shardv1.ShardInstance
 	totalResources := 0
 
 	for _, shard := range shards {
-		if shard.Status.Phase == shardv1.ShardPhaseRunning && 
-		   time.Since(shard.Status.LastHeartbeat.Time) < 2*time.Minute {
+		if shard.Status.Phase == shardv1.ShardPhaseRunning &&
+			time.Since(shard.Status.LastHeartbeat.Time) < 2*time.Minute {
 			healthyShards++
 		}
 		totalResources += len(shard.Status.AssignedResources)
@@ -228,8 +228,8 @@ func (mc *MetricsCollector) CollectSystemMetrics(shards []*shardv1.ShardInstance
 	mc.totalResourcesGauge.Set(float64(totalResources))
 
 	mc.logger.WithFields(logrus.Fields{
-		"total_shards":   totalShards,
-		"healthy_shards": healthyShards,
+		"total_shards":    totalShards,
+		"healthy_shards":  healthyShards,
 		"total_resources": totalResources,
 	}).Info("Collected system metrics")
 
@@ -302,7 +302,7 @@ func (mc *MetricsCollector) ExposeMetrics() error {
 
 	handler := promhttp.HandlerFor(mc.registry, promhttp.HandlerOpts{})
 	http.Handle(mc.config.Path, handler)
-	
+
 	mc.logger.WithFields(logrus.Fields{
 		"port": mc.config.Port,
 		"path": mc.config.Path,

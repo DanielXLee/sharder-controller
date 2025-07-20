@@ -1,0 +1,115 @@
+# Docker Compose for local development and testing
+version: '3.8'
+
+services:
+  # Shard Controller Manager
+  shard-manager:
+    build:
+      context: .
+      dockerfile: Dockerfile.manager
+      args:
+        VERSION: dev
+        COMMIT: local
+        BUILD_DATE: ${BUILD_DATE:-unknown}
+    image: shard-controller/manager:dev
+    container_name: shard-manager
+    ports:
+      - "8080:8080"  # Metrics port
+      - "8081:8081"  # Health port
+    environment:
+      - LOG_LEVEL=debug
+      - METRICS_ADDR=0.0.0.0:8080
+      - HEALTH_ADDR=0.0.0.0:8081
+    volumes:
+      # Mount kubeconfig for local development
+      - ${HOME}/.kube:/home/nonroot/.kube:ro
+    networks:
+      - shard-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8081/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Shard Controller Worker
+  shard-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+      args:
+        VERSION: dev
+        COMMIT: local
+        BUILD_DATE: ${BUILD_DATE:-unknown}
+    image: shard-controller/worker:dev
+    container_name: shard-worker
+    ports:
+      - "8082:8080"  # Metrics port (mapped to avoid conflict)
+      - "8083:8081"  # Health port (mapped to avoid conflict)
+    environment:
+      - LOG_LEVEL=debug
+      - METRICS_ADDR=0.0.0.0:8080
+      - HEALTH_ADDR=0.0.0.0:8081
+      - SHARD_ID=worker-local-1
+    volumes:
+      # Mount kubeconfig for local development
+      - ${HOME}/.kube:/home/nonroot/.kube:ro
+    networks:
+      - shard-network
+    restart: unless-stopped
+    depends_on:
+      - shard-manager
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8081/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Prometheus for metrics collection (optional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: shard-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - shard-network
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+  # Grafana for metrics visualization (optional)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: shard-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    networks:
+      - shard-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    profiles:
+      - monitoring
+
+networks:
+  shard-network:
+    driver: bridge
+
+volumes:
+  grafana-storage:

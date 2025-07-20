@@ -18,11 +18,11 @@ import (
 type LoadPattern string
 
 const (
-	ConstantLoad    LoadPattern = "constant"
-	LinearIncrease  LoadPattern = "linear_increase"
-	SpikeLoad       LoadPattern = "spike"
-	RandomLoad      LoadPattern = "random"
-	BurstLoad       LoadPattern = "burst"
+	ConstantLoad   LoadPattern = "constant"
+	LinearIncrease LoadPattern = "linear_increase"
+	SpikeLoad      LoadPattern = "spike"
+	RandomLoad     LoadPattern = "random"
+	BurstLoad      LoadPattern = "burst"
 )
 
 // LoadGeneratorConfig configures the load generator
@@ -43,15 +43,15 @@ type LoadGenerator struct {
 	client       client.Client
 	kubeClient   kubernetes.Interface
 	shardManager interfaces.ShardManager
-	
+
 	// Metrics
-	totalRequests    int64
-	successRequests  int64
-	failedRequests   int64
-	totalLatency     int64
-	minLatency       int64
-	maxLatency       int64
-	
+	totalRequests   int64
+	successRequests int64
+	failedRequests  int64
+	totalLatency    int64
+	minLatency      int64
+	maxLatency      int64
+
 	// Control
 	stopCh chan struct{}
 	wg     sync.WaitGroup
@@ -183,7 +183,7 @@ func (lg *LoadGenerator) generateRequest(ctx context.Context, workerID int) {
 
 	// Assign resource to shard
 	_, err := lg.shardManager.AssignResource(ctx, resource)
-	
+
 	latency := time.Since(start).Nanoseconds()
 	atomic.AddInt64(&lg.totalLatency, latency)
 
@@ -211,7 +211,7 @@ func (lg *LoadGenerator) generateRequest(ctx context.Context, workerID int) {
 // createSyntheticResource creates a synthetic resource for testing
 func (lg *LoadGenerator) createSyntheticResource(workerID int) *interfaces.Resource {
 	resourceType := lg.config.ResourceTypes[rand.Intn(len(lg.config.ResourceTypes))]
-	
+
 	return &interfaces.Resource{
 		ID:   fmt.Sprintf("resource-%d-%d-%d", workerID, time.Now().UnixNano(), rand.Intn(10000)),
 		Type: resourceType,
@@ -315,7 +315,7 @@ type LoadMetrics struct {
 func (lm *LoadMetrics) String() string {
 	return fmt.Sprintf(
 		"Total: %d, Success: %d (%.2f%%), Failed: %d, "+
-		"Avg Latency: %.2fms, Min: %.2fms, Max: %.2fms, RPS: %.2f",
+			"Avg Latency: %.2fms, Min: %.2fms, Max: %.2fms, RPS: %.2f",
 		lm.TotalRequests, lm.SuccessRequests, lm.SuccessRate, lm.FailedRequests,
 		lm.AvgLatencyMs, lm.MinLatencyMs, lm.MaxLatencyMs, lm.RequestsPerSec,
 	)

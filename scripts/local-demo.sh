@@ -1,0 +1,319 @@
+#!/bin/bash
+
+# Kubernetes Shard Controller Local Demo Script
+# This script demonstrates the controller using existing cluster
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Configuration
+NAMESPACE="shard-system"
+DEMO_NAMESPACE="demo"
+
+# Helper functions
+log_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+log_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+log_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+check_prerequisites() {
+    log_info "Checking prerequisites..."
+    
+    # Check if kubectl is installed and configured
+    if ! command -v kubectl &> /dev/null; then
+        log_error "kubectl is not installed. Please install kubectl first."
+        exit 1
+    fi
+    
+    # Check if we can access the cluster
+    if ! kubectl cluster-info &> /dev/null; then
+        log_error "Cannot access Kubernetes cluster. Please configure kubectl."
+        exit 1
+    fi
+    
+    # Check if Go is installed
+    if ! command -v go &> /dev/null; then
+        log_error "Go is not installed. Please install Go 1.24+ first."
+        exit 1
+    fi
+    
+    # Check if we're in the project root
+    if [[ ! -f "go.mod" ]]; then
+        log_error "Please run this script from the project root directory"
+        exit 1
+    fi
+    
+    log_success "All prerequisites are met!"
+}
+
+build_controller() {
+    log_info "Building shard controller..."
+    
+    # Build the controller binaries
+    make build
+    
+    log_success "Controller built successfully!"
+}
+
+install_crds() {
+    log_info "Installing Custom Resource Definitions..."
+    
+    # Apply CRDs
+    kubectl apply -f manifests/crds/
+    
+    # Wait for CRDs to be established
+    log_info "Waiting for CRDs to be established..."
+    kubectl wait --for condition=established --timeout=60s crd/shardconfigs.shard.io || true
+    kubectl wait --for condition=established --timeout=60s crd/shardinstances.shard.io || true
+    
+    log_success "CRDs installed successfully!"
+}
+
+deploy_controller() {
+    log_info "Deploying shard controller..."
+    
+    # Create namespace
+    kubectl apply -f manifests/namespace.yaml
+    
+    # Apply RBAC
+    kubectl apply -f manifests/rbac.yaml
+    
+    # Apply configuration
+    kubectl apply -f manifests/configmap.yaml
+    
+    # Apply services
+    kubectl apply -f manifests/services.yaml
+    
+    # Deploy controller components
+    kubectl apply -f manifests/deployment/
+    
+    # Wait for deployments to be ready (with timeout)
+    log_info "Waiting for controller pods to be ready (this may take a few minutes)..."
+    
+    # Wait for manager deployment
+    if kubectl wait --for=condition=available --timeout=180s deployment/shard-manager -n $NAMESPACE 2>/dev/null; then
+        log_success "Manager deployment is ready!"
+    else
+        log_warning "Manager deployment is taking longer than expected, continuing..."
+    fi
+    
+    # Wait for worker deployment
+    if kubectl wait --for=condition=available --timeout=180s deployment/shard-worker -n $NAMESPACE 2>/dev/null; then
+        log_success "Worker deployment is ready!"
+    else
+        log_warning "Worker deployment is taking longer than expected, continuing..."
+    fi
+    
+    log_success "Controller deployed successfully!"
+}
+
+create_demo_resources() {
+    log_info "Creating demo resources..."
+    
+    # Create demo namespace
+    kubectl create namespace $DEMO_NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+    
+    # Create a demo ShardConfig
+    cat <<EOF | kubectl apply -f -
+apiVersion: shard.io/v1
+kind: ShardConfig
+metadata:
+  name: demo-shards
+  namespace: $DEMO_NAMESPACE
+  labels:
+    app: demo-app
+    environment: demo
+spec:
+  minShards: 2
+  maxShards: 5
+  scaleUpThreshold: 0.7
+  scaleDownThreshold: 0.3
+  healthCheckInterval: "30s"
+  loadBalanceStrategy: "consistent-hash"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "200m"
+      memory: "256Mi"
+  gracefulShutdownTimeout: "60s"
+  rebalanceThreshold: 0.2
+EOF
+    
+    # Wait a moment for the controller to process
+    sleep 5
+    
+    log_success "Demo resources created!"
+}
+
+show_status() {
+    log_info "Showing current status..."
+    
+    echo ""
+    echo "=== Controller Pods ==="
+    kubectl get pods -n $NAMESPACE -o wide || log_warning "Could not get controller pods"
+    
+    echo ""
+    echo "=== Custom Resources ==="
+    kubectl get shardconfigs,shardinstances -n $DEMO_NAMESPACE -o wide || log_warning "Could not get custom resources"
+    
+    echo ""
+    echo "=== Controller Logs (last 10 lines) ==="
+    kubectl logs -n $NAMESPACE deployment/shard-manager --tail=10 2>/dev/null || log_warning "Could not get manager logs"
+}
+
+demonstrate_scaling() {
+    log_info "Demonstrating scaling functionality..."
+    
+    # Update the ShardConfig to trigger scaling
+    kubectl patch shardconfig demo-shards -n $DEMO_NAMESPACE --type='merge' -p='{"spec":{"maxShards":8}}' || log_warning "Could not update ShardConfig"
+    
+    log_info "Updated maxShards to 8. Monitoring changes..."
+    sleep 10
+    
+    echo ""
+    echo "=== Updated Resources ==="
+    kubectl get shardconfigs,shardinstances -n $DEMO_NAMESPACE -o wide || log_warning "Could not get updated resources"
+}
+
+run_health_check() {
+    log_info "Running health checks..."
+    
+    # Check if manager service exists
+    if kubectl get svc shard-manager-metrics -n $NAMESPACE &>/dev/null; then
+        # Port forward to access health endpoint
+        kubectl port-forward -n $NAMESPACE svc/shard-manager-metrics 8080:8080 &
+        PORT_FORWARD_PID=$!
+        
+        # Wait for port forward to be ready
+        sleep 3
+        
+        # Check health endpoint
+        if curl -s --max-time 5 http://localhost:8080/healthz 2>/dev/null | grep -q "ok"; then
+            log_success "Health check passed!"
+        else
+            log_warning "Health check failed or endpoint not ready"
+        fi
+        
+        # Check metrics endpoint
+        if curl -s --max-time 5 http://localhost:8080/metrics 2>/dev/null | grep -q "shard_controller"; then
+            log_success "Metrics endpoint is working!"
+        else
+            log_warning "Metrics endpoint not ready"
+        fi
+        
+        # Kill port forward
+        kill $PORT_FORWARD_PID 2>/dev/null || true
+    else
+        log_warning "Manager service not found, skipping health checks"
+    fi
+}
+
+cleanup() {
+    log_info "Cleaning up demo resources..."
+    
+    # Delete demo resources
+    kubectl delete namespace $DEMO_NAMESPACE --ignore-not-found=true
+    
+    # Optionally delete the controller
+    read -p "Do you want to delete the shard controller? (y/N): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        kubectl delete -f manifests/deployment/ --ignore-not-found=true
+        kubectl delete -f manifests/services.yaml --ignore-not-found=true
+        kubectl delete -f manifests/configmap.yaml --ignore-not-found=true
+        kubectl delete -f manifests/rbac.yaml --ignore-not-found=true
+        kubectl delete -f manifests/namespace.yaml --ignore-not-found=true
+        kubectl delete -f manifests/crds/ --ignore-not-found=true
+        log_success "Shard controller deleted!"
+    else
+        log_info "Shard controller preserved. You can delete it manually later."
+    fi
+}
+
+show_next_steps() {
+    log_info "Demo completed! Here are some next steps:"
+    
+    echo ""
+    echo "=== Useful Commands ==="
+    echo "# View all shard resources:"
+    echo "kubectl get shardconfigs,shardinstances --all-namespaces"
+    echo ""
+    echo "# Watch controller logs:"
+    echo "kubectl logs -f -n $NAMESPACE deployment/shard-manager"
+    echo ""
+    echo "# Access metrics:"
+    echo "kubectl port-forward -n $NAMESPACE svc/shard-manager-metrics 8080:8080"
+    echo "curl http://localhost:8080/metrics"
+    echo ""
+    echo "# Create your own ShardConfig:"
+    echo "kubectl apply -f examples/basic-shardconfig.yaml"
+    echo ""
+    echo "=== Documentation ==="
+    echo "- Configuration Guide: docs/configuration.md"
+    echo "- User Guide: docs/user-guide.md"
+    echo "- API Reference: docs/api-reference.md"
+    echo "- Troubleshooting: docs/troubleshooting.md"
+    echo "- Examples: examples/"
+}
+
+main() {
+    echo "🚀 Kubernetes Shard Controller Local Demo"
+    echo "=========================================="
+    echo ""
+    
+    check_prerequisites
+    build_controller
+    install_crds
+    deploy_controller
+    create_demo_resources
+    show_status
+    demonstrate_scaling
+    run_health_check
+    show_next_steps
+    
+    log_success "Demo completed successfully! 🎉"
+}
+
+# Handle script arguments
+case "${1:-}" in
+    "cleanup")
+        cleanup
+        exit 0
+        ;;
+    "help"|"-h"|"--help")
+        echo "Usage: $0 [cleanup|help]"
+        echo ""
+        echo "Commands:"
+        echo "  (no args)  Run the local demo"
+        echo "  cleanup    Clean up demo resources"
+        echo "  help       Show this help message"
+        exit 0
+        ;;
+    "")
+        main
+        ;;
+    *)
+        log_error "Unknown command: $1"
+        echo "Run '$0 help' for usage information"
+        exit 1
+        ;;
+esac

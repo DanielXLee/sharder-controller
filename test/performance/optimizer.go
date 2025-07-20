@@ -9,32 +9,32 @@ import (
 
 // PerformanceOptimizer analyzes system performance and suggests optimizations
 type PerformanceOptimizer struct {
-	mu                sync.RWMutex
-	metrics           map[string]*ComponentMetrics
-	recommendations   []OptimizationRecommendation
-	thresholds        *PerformanceThresholds
+	mu              sync.RWMutex
+	metrics         map[string]*ComponentMetrics
+	recommendations []OptimizationRecommendation
+	thresholds      *PerformanceThresholds
 }
 
 // ComponentMetrics tracks performance metrics for a system component
 type ComponentMetrics struct {
-	Name              string
-	OperationCount    int64
-	TotalLatency      time.Duration
-	MaxLatency        time.Duration
-	MinLatency        time.Duration
-	ErrorCount        int64
-	MemoryUsageMB     float64
-	CPUUsagePercent   float64
-	LastUpdated       time.Time
+	Name            string
+	OperationCount  int64
+	TotalLatency    time.Duration
+	MaxLatency      time.Duration
+	MinLatency      time.Duration
+	ErrorCount      int64
+	MemoryUsageMB   float64
+	CPUUsagePercent float64
+	LastUpdated     time.Time
 }
 
 // PerformanceThresholds defines acceptable performance limits
 type PerformanceThresholds struct {
-	MaxAvgLatencyMs     float64
-	MaxErrorRate        float64
-	MaxMemoryUsageMB    float64
-	MaxCPUUsagePercent  float64
-	MinThroughputRPS    float64
+	MaxAvgLatencyMs    float64
+	MaxErrorRate       float64
+	MaxMemoryUsageMB   float64
+	MaxCPUUsagePercent float64
+	MinThroughputRPS   float64
 }
 
 // OptimizationRecommendation suggests performance improvements
@@ -61,11 +61,11 @@ func NewPerformanceOptimizer() *PerformanceOptimizer {
 	return &PerformanceOptimizer{
 		metrics: make(map[string]*ComponentMetrics),
 		thresholds: &PerformanceThresholds{
-			MaxAvgLatencyMs:     100.0,  // 100ms
-			MaxErrorRate:        0.01,   // 1%
-			MaxMemoryUsageMB:    512.0,  // 512MB
-			MaxCPUUsagePercent:  80.0,   // 80%
-			MinThroughputRPS:    10.0,   // 10 RPS
+			MaxAvgLatencyMs:    100.0, // 100ms
+			MaxErrorRate:       0.01,  // 1%
+			MaxMemoryUsageMB:   512.0, // 512MB
+			MaxCPUUsagePercent: 80.0,  // 80%
+			MinThroughputRPS:   10.0,  // 10 RPS
 		},
 	}
 }
@@ -375,11 +375,11 @@ func (po *PerformanceOptimizer) getSystemMetrics() SystemMetrics {
 	runtime.ReadMemStats(&memStats)
 
 	return SystemMetrics{
-		AllocatedMemoryMB:   float64(memStats.Alloc) / 1024 / 1024,
-		SystemMemoryMB:      float64(memStats.Sys) / 1024 / 1024,
-		GCCount:             memStats.NumGC,
-		GoroutineCount:      runtime.NumGoroutine(),
-		CPUCount:            runtime.NumCPU(),
+		AllocatedMemoryMB: float64(memStats.Alloc) / 1024 / 1024,
+		SystemMemoryMB:    float64(memStats.Sys) / 1024 / 1024,
+		GCCount:           memStats.NumGC,
+		GoroutineCount:    runtime.NumGoroutine(),
+		CPUCount:          runtime.NumCPU(),
 	}
 }
 
@@ -411,31 +411,31 @@ func (po *PerformanceOptimizer) calculateHealthScore() float64 {
 
 // PerformanceReport contains a comprehensive performance analysis
 type PerformanceReport struct {
-	GeneratedAt         time.Time
-	ComponentCount      int
-	OverallHealthScore  float64
-	Recommendations     []OptimizationRecommendation
-	SystemMetrics       SystemMetrics
+	GeneratedAt        time.Time
+	ComponentCount     int
+	OverallHealthScore float64
+	Recommendations    []OptimizationRecommendation
+	SystemMetrics      SystemMetrics
 }
 
 // SystemMetrics contains system-level performance metrics
 type SystemMetrics struct {
-	AllocatedMemoryMB   float64
-	SystemMemoryMB      float64
-	GCCount             uint32
-	GoroutineCount      int
-	CPUCount            int
+	AllocatedMemoryMB float64
+	SystemMemoryMB    float64
+	GCCount           uint32
+	GoroutineCount    int
+	CPUCount          int
 }
 
 // String returns a string representation of the performance report
 func (pr *PerformanceReport) String() string {
 	return fmt.Sprintf(
 		"Performance Report (Generated: %s)\n"+
-		"Overall Health Score: %.1f/100\n"+
-		"Components Analyzed: %d\n"+
-		"Recommendations: %d\n"+
-		"System Memory: %.2f MB allocated, %.2f MB system\n"+
-		"Goroutines: %d, GC Cycles: %d",
+			"Overall Health Score: %.1f/100\n"+
+			"Components Analyzed: %d\n"+
+			"Recommendations: %d\n"+
+			"System Memory: %.2f MB allocated, %.2f MB system\n"+
+			"Goroutines: %d, GC Cycles: %d",
 		pr.GeneratedAt.Format(time.RFC3339),
 		pr.OverallHealthScore,
 		pr.ComponentCount,

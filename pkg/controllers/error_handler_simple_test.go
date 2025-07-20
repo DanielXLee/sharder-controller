@@ -72,13 +72,13 @@ func TestErrorHandler_SetRecoveryStrategy(t *testing.T) {
 	eh := NewErrorHandler(mockAlertManager, mockLogger, mockMetrics)
 
 	customStrategy := &RecoveryStrategy{
-		ErrorType:      ErrorTypeShardStartup,
-		MaxRetries:     5,
-		RetryDelay:     1 * time.Minute,
-		BackoffFactor:  3.0,
-		MaxRetryDelay:  10 * time.Minute,
-		RecoveryAction: RecoveryActionRestart,
-		Timeout:        20 * time.Minute,
+		ErrorType:                  ErrorTypeShardStartup,
+		MaxRetries:                 5,
+		RetryDelay:                 1 * time.Minute,
+		BackoffFactor:              3.0,
+		MaxRetryDelay:              10 * time.Minute,
+		RecoveryAction:             RecoveryActionRestart,
+		Timeout:                    20 * time.Minute,
 		RequiresManualIntervention: false,
 	}
 

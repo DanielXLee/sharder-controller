@@ -24,18 +24,18 @@ import (
 )
 
 var (
-	kubeconfig     = flag.String("kubeconfig", "", "Path to kubeconfig file")
-	namespace      = flag.String("namespace", "shard-controller-system", "Namespace for testing")
-	testType       = flag.String("test-type", "load", "Type of test: load, startup, migration, stability")
-	duration       = flag.Duration("duration", 5*time.Minute, "Test duration")
-	initialRPS     = flag.Int("initial-rps", 10, "Initial requests per second")
-	maxRPS         = flag.Int("max-rps", 100, "Maximum requests per second")
-	concurrency    = flag.Int("concurrency", 5, "Number of concurrent workers")
-	resourceSize   = flag.Int("resource-size", 1024, "Size of test resources in bytes")
-	shardCount     = flag.Int("shard-count", 5, "Number of shards to create for testing")
-	loadPattern    = flag.String("load-pattern", "constant", "Load pattern: constant, linear_increase, spike, random, burst")
-	outputFile     = flag.String("output", "", "Output file for results (optional)")
-	verbose        = flag.Bool("verbose", false, "Verbose output")
+	kubeconfig   = flag.String("kubeconfig", "", "Path to kubeconfig file")
+	namespace    = flag.String("namespace", "shard-controller-system", "Namespace for testing")
+	testType     = flag.String("test-type", "load", "Type of test: load, startup, migration, stability")
+	duration     = flag.Duration("duration", 5*time.Minute, "Test duration")
+	initialRPS   = flag.Int("initial-rps", 10, "Initial requests per second")
+	maxRPS       = flag.Int("max-rps", 100, "Maximum requests per second")
+	concurrency  = flag.Int("concurrency", 5, "Number of concurrent workers")
+	resourceSize = flag.Int("resource-size", 1024, "Size of test resources in bytes")
+	shardCount   = flag.Int("shard-count", 5, "Number of shards to create for testing")
+	loadPattern  = flag.String("load-pattern", "constant", "Load pattern: constant, linear_increase, spike, random, burst")
+	outputFile   = flag.String("output", "", "Output file for results (optional)")
+	verbose      = flag.Bool("verbose", false, "Verbose output")
 )
 
 func main() {
@@ -173,20 +173,20 @@ func runStartupTest(ctx context.Context, k8sClient client.Client, kubeClient kub
 
 	// Measure shard startup times
 	startupTimes := make([]time.Duration, *shardCount)
-	
+
 	for i := 0; i < *shardCount; i++ {
 		start := time.Now()
-		
+
 		// Create shard configuration
 		shardConfig := createTestShardConfig()
-		
+
 		_, err := shardManager.CreateShard(ctx, shardConfig)
 		if err != nil {
 			return fmt.Errorf("failed to create shard %d: %w", i, err)
 		}
-		
+
 		startupTimes[i] = time.Since(start)
-		
+
 		if *verbose {
 			log.Printf("Shard %d startup time: %v", i, startupTimes[i])
 		}
@@ -204,33 +204,33 @@ func runMigrationTest(ctx context.Context, k8sClient client.Client, kubeClient k
 
 	// Test different resource counts
 	resourceCounts := []int{10, 50, 100, 500, 1000}
-	
+
 	for _, count := range resourceCounts {
 		log.Printf("Testing migration of %d resources", count)
-		
+
 		start := time.Now()
-		
+
 		// Create mock resources
 		resources := createTestResources(count, *resourceSize)
-		
+
 		// Create mock resource migrator
 		migrator := &performance.MockResourceMigrator{}
-		
+
 		// Create migration plan
 		plan, err := migrator.CreateMigrationPlan(ctx, "source-shard", "target-shard", resources)
 		if err != nil {
 			return fmt.Errorf("failed to create migration plan: %w", err)
 		}
-		
+
 		// Execute migration
 		err = migrator.ExecuteMigration(ctx, plan)
 		if err != nil {
 			return fmt.Errorf("failed to execute migration: %w", err)
 		}
-		
+
 		duration := time.Since(start)
 		throughput := float64(count) / duration.Seconds()
-		
+
 		log.Printf("Migrated %d resources in %v (%.2f resources/sec)", count, duration, throughput)
 	}
 
@@ -302,18 +302,18 @@ func runBenchmarkSuite(ctx context.Context, k8sClient client.Client, kubeClient 
 	for _, scenario := range scenarios {
 		log.Printf("Running %s...", scenario.name)
 		start := time.Now()
-		
+
 		err := scenario.testFunc(ctx, k8sClient, kubeClient)
 		duration := time.Since(start)
-		
+
 		results[scenario.name] = err
-		
+
 		if err != nil {
 			log.Printf("%s failed in %v: %v", scenario.name, duration, err)
 		} else {
 			log.Printf("%s completed successfully in %v", scenario.name, duration)
 		}
-		
+
 		// Brief pause between tests
 		time.Sleep(5 * time.Second)
 	}
@@ -374,9 +374,9 @@ func createTestResources(count, sizeBytes int) []*interfaces.Resource {
 				"payload": string(make([]byte, sizeBytes)),
 			},
 			Metadata: map[string]string{
-				"test_id":      fmt.Sprintf("%d", i),
-				"created_at":   time.Now().Format(time.RFC3339),
-				"size_bytes":   fmt.Sprintf("%d", sizeBytes),
+				"test_id":    fmt.Sprintf("%d", i),
+				"created_at": time.Now().Format(time.RFC3339),
+				"size_bytes": fmt.Sprintf("%d", sizeBytes),
 			},
 		}
 	}
@@ -446,7 +446,7 @@ func printStabilityTestResults(metrics *performance.LoadMetrics, profile perform
 	fmt.Printf("Total Requests: %d\n", metrics.TotalRequests)
 	fmt.Printf("Success Rate: %.2f%%\n", metrics.SuccessRate)
 	fmt.Printf("System Stability: %s\n", profile.String())
-	
+
 	// Stability assessment
 	if metrics.SuccessRate > 99.0 && profile.TotalGC < 100 {
 		fmt.Println("System Stability: EXCELLENT")

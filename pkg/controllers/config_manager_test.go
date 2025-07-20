@@ -127,7 +127,7 @@ func TestConfigManager_LoadConfig(t *testing.T) {
 
 		loadedCfg, err := cm.LoadConfig(context.Background())
 		require.NoError(t, err)
-		
+
 		// Should match default config
 		assert.Equal(t, cfg.DefaultShardConfig.MinShards, loadedCfg.Spec.MinShards)
 		assert.Equal(t, cfg.DefaultShardConfig.MaxShards, loadedCfg.Spec.MaxShards)
@@ -165,7 +165,7 @@ func TestConfigManager_LoadConfig(t *testing.T) {
 
 		loadedCfg, err := cm.LoadConfig(context.Background())
 		require.NoError(t, err)
-		
+
 		// CRD should take precedence over ConfigMap
 		assert.Equal(t, 5, loadedCfg.Spec.MinShards)
 		assert.Equal(t, 15, loadedCfg.Spec.MaxShards)
@@ -335,12 +335,12 @@ func TestConfigManager_ApplyDefaults(t *testing.T) {
 	// Create config with some zero values
 	shardConfig := &shardv1.ShardConfig{
 		Spec: shardv1.ShardConfigSpec{
-			MinShards:               0, // Should be set to default
-			MaxShards:               5, // Should remain unchanged
-			ScaleUpThreshold:        0, // Should be set to default
-			ScaleDownThreshold:      0.2, // Should remain unchanged
-			HealthCheckInterval:     metav1.Duration{Duration: 0}, // Should be set to default
-			LoadBalanceStrategy:     "", // Should be set to default
+			MinShards:               0,                                           // Should be set to default
+			MaxShards:               5,                                           // Should remain unchanged
+			ScaleUpThreshold:        0,                                           // Should be set to default
+			ScaleDownThreshold:      0.2,                                         // Should remain unchanged
+			HealthCheckInterval:     metav1.Duration{Duration: 0},                // Should be set to default
+			LoadBalanceStrategy:     "",                                          // Should be set to default
 			GracefulShutdownTimeout: metav1.Duration{Duration: 45 * time.Second}, // Should remain unchanged
 		},
 	}
@@ -454,8 +454,8 @@ func TestConfigManager_UpdateConfigMap(t *testing.T) {
 		require.NoError(t, err)
 
 		newData := map[string]string{
-			"minShards": "2",
-			"maxShards": "8",
+			"minShards":        "2",
+			"maxShards":        "8",
 			"scaleUpThreshold": "0.9",
 		}
 

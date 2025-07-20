@@ -654,7 +654,7 @@ func (suite *FinalSystemStandaloneTestSuite) TestResourceMigrationSimulation() {
 
 	// Simulate migration by moving resources
 	resourcesToMigrate := []string{"resource-1", "resource-2", "resource-3"}
-	
+
 	// Update source shard (remove resources)
 	sourceShard.Status.AssignedResources = []string{"resource-4", "resource-5"}
 	sourceShard.Status.Load = 0.5 // Reduced load
@@ -726,7 +726,7 @@ func (suite *FinalSystemStandaloneTestSuite) TestSystemScalabilityValidation() {
 
 	for i := 1; i <= maxShards; i++ {
 		shardStartTime := time.Now()
-		
+
 		shard := &shardv1.ShardInstance{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      fmt.Sprintf("scale-test-shard-%d", i),
@@ -820,7 +820,7 @@ func (suite *FinalSystemStandaloneTestSuite) TestRequirementsValidationStandalon
 
 	validatedRequirements := []string{
 		"CRD Deployment and Management",
-		"Shard Lifecycle Management", 
+		"Shard Lifecycle Management",
 		"Configuration Management",
 		"Failure Detection and Handling",
 		"Resource Migration Simulation",

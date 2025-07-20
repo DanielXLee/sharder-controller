@@ -9,20 +9,20 @@ import (
 // Config represents the configuration for the shard controller
 type Config struct {
 	// Kubernetes configuration
-	KubeConfig   string `json:"kubeconfig,omitempty"`
-	MasterURL    string `json:"masterURL,omitempty"`
-	Namespace    string `json:"namespace"`
-	NodeName     string `json:"nodeName"`
-	
+	KubeConfig string `json:"kubeconfig,omitempty"`
+	MasterURL  string `json:"masterURL,omitempty"`
+	Namespace  string `json:"namespace"`
+	NodeName   string `json:"nodeName"`
+
 	// Controller configuration
-	LeaderElection    LeaderElectionConfig `json:"leaderElection"`
-	HealthCheck       HealthCheckConfig    `json:"healthCheck"`
-	Metrics           MetricsConfig        `json:"metrics"`
-	Alerting          AlertingConfig       `json:"alerting"`
-	
+	LeaderElection LeaderElectionConfig `json:"leaderElection"`
+	HealthCheck    HealthCheckConfig    `json:"healthCheck"`
+	Metrics        MetricsConfig        `json:"metrics"`
+	Alerting       AlertingConfig       `json:"alerting"`
+
 	// Shard configuration defaults
 	DefaultShardConfig ShardConfig `json:"defaultShardConfig"`
-	
+
 	// Logging configuration
 	LogLevel  string `json:"logLevel"`
 	LogFormat string `json:"logFormat"`
@@ -41,23 +41,23 @@ type ShardConfig struct {
 
 // LeaderElectionConfig defines leader election configuration
 type LeaderElectionConfig struct {
-	Enabled         bool          `json:"enabled"`
-	LeaseDuration   time.Duration `json:"leaseDuration"`
-	RenewDeadline   time.Duration `json:"renewDeadline"`
-	RetryPeriod     time.Duration `json:"retryPeriod"`
-	ResourceLock    string        `json:"resourceLock"`
-	ResourceName    string        `json:"resourceName"`
-	ResourceNamespace string      `json:"resourceNamespace"`
+	Enabled           bool          `json:"enabled"`
+	LeaseDuration     time.Duration `json:"leaseDuration"`
+	RenewDeadline     time.Duration `json:"renewDeadline"`
+	RetryPeriod       time.Duration `json:"retryPeriod"`
+	ResourceLock      string        `json:"resourceLock"`
+	ResourceName      string        `json:"resourceName"`
+	ResourceNamespace string        `json:"resourceNamespace"`
 }
 
 // HealthCheckConfig defines health check configuration
 type HealthCheckConfig struct {
-	Interval        time.Duration `json:"interval"`
-	Timeout         time.Duration `json:"timeout"`
-	FailureThreshold int          `json:"failureThreshold"`
-	SuccessThreshold int          `json:"successThreshold"`
-	Port            int           `json:"port"`
-	Path            string        `json:"path"`
+	Interval         time.Duration `json:"interval"`
+	Timeout          time.Duration `json:"timeout"`
+	FailureThreshold int           `json:"failureThreshold"`
+	SuccessThreshold int           `json:"successThreshold"`
+	Port             int           `json:"port"`
+	Path             string        `json:"path"`
 }
 
 // MetricsConfig defines metrics configuration
@@ -69,11 +69,11 @@ type MetricsConfig struct {
 
 // AlertingConfig defines alerting configuration
 type AlertingConfig struct {
-	Enabled     bool          `json:"enabled"`
-	WebhookURL  string        `json:"webhookUrl"`
-	Timeout     time.Duration `json:"timeout"`
-	RetryCount  int           `json:"retryCount"`
-	RetryDelay  time.Duration `json:"retryDelay"`
+	Enabled    bool          `json:"enabled"`
+	WebhookURL string        `json:"webhookUrl"`
+	Timeout    time.Duration `json:"timeout"`
+	RetryCount int           `json:"retryCount"`
+	RetryDelay time.Duration `json:"retryDelay"`
 }
 
 // DefaultConfig returns the default configuration
@@ -95,8 +95,8 @@ func DefaultConfig() *Config {
 			Timeout:          5 * time.Second,
 			FailureThreshold: 3,
 			SuccessThreshold: 1,
-			Port:            8080,
-			Path:            "/healthz",
+			Port:             8080,
+			Path:             "/healthz",
 		},
 		Metrics: MetricsConfig{
 			Enabled: true,

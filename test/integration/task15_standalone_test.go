@@ -26,7 +26,7 @@ func TestTask15FinalSystemTesting(t *testing.T) {
 
 	fmt.Println("\n" + "="*70)
 	fmt.Println("TASK 15 - FINAL INTEGRATION AND SYSTEM TESTING")
-	fmt.Println("="*70)
+	fmt.Println("=" * 70)
 
 	// Setup test environment
 	testEnv := &envtest.Environment{
@@ -82,7 +82,7 @@ func TestTask15FinalSystemTesting(t *testing.T) {
 	// Task completion summary
 	fmt.Println("\n" + "="*70)
 	fmt.Println("TASK 15 COMPLETION SUMMARY")
-	fmt.Println("="*70)
+	fmt.Println("=" * 70)
 	fmt.Println("✅ Sub-task 1: Complete system deployment validation - COMPLETED")
 	fmt.Println("✅ Sub-task 2: End-to-end workflow testing - COMPLETED")
 	fmt.Println("✅ Sub-task 3: Chaos engineering scenarios - COMPLETED")
@@ -93,7 +93,7 @@ func TestTask15FinalSystemTesting(t *testing.T) {
 	fmt.Println("\n🎉 TASK 15 - FINAL INTEGRATION AND SYSTEM TESTING: SUCCESSFUL!")
 	fmt.Println("   All sub-tasks completed successfully.")
 	fmt.Println("   System is validated and ready for production deployment.")
-	fmt.Println("="*70)
+	fmt.Println("=" * 70)
 }
 
 func testSystemDeployment(t *testing.T, ctx context.Context, client client.Client) {
@@ -468,15 +468,15 @@ func testSecurityScanning(t *testing.T, ctx context.Context, client client.Clien
 			Name:      "security-validated-config",
 			Namespace: "default",
 			Labels: map[string]string{
-				"security.scan":     "validated",
-				"compliance.level":  "high",
-				"pod.security":      "restricted",
+				"security.scan":    "validated",
+				"compliance.level": "high",
+				"pod.security":     "restricted",
 			},
 			Annotations: map[string]string{
-				"security.scanner":    "kubesec",
-				"vulnerability.scan":  "trivy",
-				"rbac.validated":      "true",
-				"network.policy":      "enabled",
+				"security.scanner":   "kubesec",
+				"vulnerability.scan": "trivy",
+				"rbac.validated":     "true",
+				"network.policy":     "enabled",
 			},
 		},
 		Spec: shardv1.ShardConfigSpec{
@@ -611,21 +611,21 @@ func testFinalDocumentation(t *testing.T, ctx context.Context, client client.Cli
 			Name:      "final-system-test-report",
 			Namespace: "default",
 			Labels: map[string]string{
-				"report.type":        "final-system-test",
-				"test.version":       "1.0.0",
+				"report.type":            "final-system-test",
+				"test.version":           "1.0.0",
 				"documentation.complete": "true",
 			},
 			Annotations: map[string]string{
-				"test.summary":              "Task 15 - Final Integration and System Testing completed successfully",
-				"requirements.validated":    "35/35 (100%)",
-				"security.scanned":          "true",
-				"performance.benchmarked":   "true",
-				"chaos.tested":              "true",
-				"deployment.validated":      "true",
-				"e2e.workflow.tested":       "true",
-				"documentation.generated":   "true",
-				"test.execution.date":       time.Now().Format("2006-01-02 15:04:05"),
-				"system.ready.production":   "true",
+				"test.summary":            "Task 15 - Final Integration and System Testing completed successfully",
+				"requirements.validated":  "35/35 (100%)",
+				"security.scanned":        "true",
+				"performance.benchmarked": "true",
+				"chaos.tested":            "true",
+				"deployment.validated":    "true",
+				"e2e.workflow.tested":     "true",
+				"documentation.generated": "true",
+				"test.execution.date":     time.Now().Format("2006-01-02 15:04:05"),
+				"system.ready.production": "true",
 			},
 		},
 		Spec: shardv1.ShardConfigSpec{

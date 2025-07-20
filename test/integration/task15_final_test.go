@@ -62,7 +62,7 @@ func (suite *Task15FinalTestSuite) SetupSuite() {
 func (suite *Task15FinalTestSuite) TearDownSuite() {
 	fmt.Println("\n" + "="*70)
 	fmt.Println("TASK 15 - FINAL INTEGRATION AND SYSTEM TESTING COMPLETED")
-	fmt.Println("="*70)
+	fmt.Println("=" * 70)
 	fmt.Println("✓ Complete system deployment validation")
 	fmt.Println("✓ End-to-end workflow testing")
 	fmt.Println("✓ Chaos engineering scenarios")
@@ -72,7 +72,7 @@ func (suite *Task15FinalTestSuite) TearDownSuite() {
 	fmt.Println("✓ Final documentation and reporting")
 	fmt.Println("\n🎉 TASK 15 IMPLEMENTATION SUCCESSFUL!")
 	fmt.Println("   System is ready for production deployment.")
-	fmt.Println("="*70)
+	fmt.Println("=" * 70)
 
 	suite.cancel()
 	err := suite.testEnv.Stop()

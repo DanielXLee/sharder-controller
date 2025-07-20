@@ -41,11 +41,11 @@ type MigrationResults struct {
 
 // StressTestResults contains stress test performance metrics
 type StressTestResults struct {
-	TotalOperations     int64
-	SuccessRate         float64
-	ThroughputRPS       float64
-	MaxMemoryUsageMB    float64
-	RequirementMet      bool // Should maintain > 95% success rate
+	TotalOperations  int64
+	SuccessRate      float64
+	ThroughputRPS    float64
+	MaxMemoryUsageMB float64
+	RequirementMet   bool // Should maintain > 95% success rate
 }
 
 // BenchmarkResults contains benchmark performance metrics
@@ -58,8 +58,8 @@ type BenchmarkResults struct {
 
 // OverallAssessment contains overall performance assessment
 type OverallAssessment struct {
-	Score                int     // 0-100
-	Grade                string  // A, B, C, D, F
+	Score                int    // 0-100
+	Grade                string // A, B, C, D, F
 	RequirementsMet      int
 	TotalRequirements    int
 	CriticalIssues       []string
@@ -82,11 +82,11 @@ func (ps *PerformanceSummary) GenerateReport() string {
 	// Shard Startup Performance
 	if ps.ShardStartupResults != nil {
 		report += fmt.Sprintf("🚀 Shard Startup Performance:\n")
-		report += fmt.Sprintf("   Average: %.2fms (Requirement: <1000ms) %s\n", 
-			ps.ShardStartupResults.AverageStartupTimeMs, 
+		report += fmt.Sprintf("   Average: %.2fms (Requirement: <1000ms) %s\n",
+			ps.ShardStartupResults.AverageStartupTimeMs,
 			getStatusIcon(ps.ShardStartupResults.RequirementMet))
-		report += fmt.Sprintf("   Range: %.2fms - %.2fms\n", 
-			ps.ShardStartupResults.MinStartupTimeMs, 
+		report += fmt.Sprintf("   Range: %.2fms - %.2fms\n",
+			ps.ShardStartupResults.MinStartupTimeMs,
 			ps.ShardStartupResults.MaxStartupTimeMs)
 		report += fmt.Sprintf("   Samples: %d\n\n", ps.ShardStartupResults.SamplesCount)
 	}
@@ -94,20 +94,20 @@ func (ps *PerformanceSummary) GenerateReport() string {
 	// Resource Assignment Performance
 	if ps.ResourceAssignResults != nil {
 		report += fmt.Sprintf("📋 Resource Assignment Performance:\n")
-		report += fmt.Sprintf("   Throughput: %.2f RPS (Requirement: >100 RPS) %s\n", 
-			ps.ResourceAssignResults.ThroughputRPS, 
+		report += fmt.Sprintf("   Throughput: %.2f RPS (Requirement: >100 RPS) %s\n",
+			ps.ResourceAssignResults.ThroughputRPS,
 			getStatusIcon(ps.ResourceAssignResults.RequirementMet))
-		report += fmt.Sprintf("   Average Latency: %.2fms\n\n", 
+		report += fmt.Sprintf("   Average Latency: %.2fms\n\n",
 			ps.ResourceAssignResults.AverageLatencyMs)
 	}
 
 	// Migration Performance
 	if ps.MigrationResults != nil {
 		report += fmt.Sprintf("🔄 Resource Migration Performance:\n")
-		report += fmt.Sprintf("   Speed: %.2f resources/sec (Requirement: >100 resources/sec) %s\n", 
-			ps.MigrationResults.ResourcesPerSecond, 
+		report += fmt.Sprintf("   Speed: %.2f resources/sec (Requirement: >100 resources/sec) %s\n",
+			ps.MigrationResults.ResourcesPerSecond,
 			getStatusIcon(ps.MigrationResults.RequirementMet))
-		report += fmt.Sprintf("   Average Latency: %.2fms\n\n", 
+		report += fmt.Sprintf("   Average Latency: %.2fms\n\n",
 			ps.MigrationResults.AverageLatencyMs)
 	}
 
@@ -115,8 +115,8 @@ func (ps *PerformanceSummary) GenerateReport() string {
 	if ps.StressTestResults != nil {
 		report += fmt.Sprintf("💪 Stress Test Results:\n")
 		report += fmt.Sprintf("   Total Operations: %d\n", ps.StressTestResults.TotalOperations)
-		report += fmt.Sprintf("   Success Rate: %.2f%% (Requirement: >95%%) %s\n", 
-			ps.StressTestResults.SuccessRate, 
+		report += fmt.Sprintf("   Success Rate: %.2f%% (Requirement: >95%%) %s\n",
+			ps.StressTestResults.SuccessRate,
 			getStatusIcon(ps.StressTestResults.RequirementMet))
 		report += fmt.Sprintf("   Throughput: %.2f RPS\n", ps.StressTestResults.ThroughputRPS)
 		report += fmt.Sprintf("   Max Memory: %.2f MB\n\n", ps.StressTestResults.MaxMemoryUsageMB)
@@ -125,37 +125,37 @@ func (ps *PerformanceSummary) GenerateReport() string {
 	// Benchmark Results
 	if ps.BenchmarkResults != nil {
 		report += fmt.Sprintf("⚡ Benchmark Results:\n")
-		report += fmt.Sprintf("   Shard Creation: %.2f ops/sec\n", 
+		report += fmt.Sprintf("   Shard Creation: %.2f ops/sec\n",
 			ps.BenchmarkResults.ShardCreationOpsPerSec)
-		report += fmt.Sprintf("   Resource Assignment: %.2f ops/sec\n", 
+		report += fmt.Sprintf("   Resource Assignment: %.2f ops/sec\n",
 			ps.BenchmarkResults.ResourceAssignmentOpsPerSec)
-		report += fmt.Sprintf("   Memory Allocations: %d allocs/op\n\n", 
+		report += fmt.Sprintf("   Memory Allocations: %d allocs/op\n\n",
 			ps.BenchmarkResults.MemoryAllocationsPerOp)
 	}
 
 	// Overall Assessment
 	if ps.OverallAssessment != nil {
 		report += fmt.Sprintf("📊 Overall Assessment:\n")
-		report += fmt.Sprintf("   Score: %d/100 (Grade: %s)\n", 
+		report += fmt.Sprintf("   Score: %d/100 (Grade: %s)\n",
 			ps.OverallAssessment.Score, ps.OverallAssessment.Grade)
-		report += fmt.Sprintf("   Requirements Met: %d/%d\n", 
+		report += fmt.Sprintf("   Requirements Met: %d/%d\n",
 			ps.OverallAssessment.RequirementsMet, ps.OverallAssessment.TotalRequirements)
-		
+
 		if len(ps.OverallAssessment.CriticalIssues) > 0 {
 			report += fmt.Sprintf("   Critical Issues:\n")
 			for _, issue := range ps.OverallAssessment.CriticalIssues {
 				report += fmt.Sprintf("     - %s\n", issue)
 			}
 		}
-		
+
 		if len(ps.OverallAssessment.Recommendations) > 0 {
 			report += fmt.Sprintf("   Recommendations:\n")
 			for _, rec := range ps.OverallAssessment.Recommendations {
 				report += fmt.Sprintf("     - %s\n", rec)
 			}
 		}
-		
-		report += fmt.Sprintf("   Optimization Priority: %s\n", 
+
+		report += fmt.Sprintf("   Optimization Priority: %s\n",
 			ps.OverallAssessment.OptimizationPriority)
 	}
 
@@ -177,10 +177,10 @@ func (ps *PerformanceSummary) CalculateOverallAssessment() {
 			requirementsMet++
 		} else {
 			score -= 20
-			criticalIssues = append(criticalIssues, 
-				fmt.Sprintf("Shard startup time (%.2fms) exceeds requirement (<1000ms)", 
+			criticalIssues = append(criticalIssues,
+				fmt.Sprintf("Shard startup time (%.2fms) exceeds requirement (<1000ms)",
 					ps.ShardStartupResults.AverageStartupTimeMs))
-			recommendations = append(recommendations, 
+			recommendations = append(recommendations,
 				"Optimize shard initialization process and reduce startup dependencies")
 		}
 	}
@@ -192,10 +192,10 @@ func (ps *PerformanceSummary) CalculateOverallAssessment() {
 			requirementsMet++
 		} else {
 			score -= 25
-			criticalIssues = append(criticalIssues, 
-				fmt.Sprintf("Resource assignment throughput (%.2f RPS) below requirement (>100 RPS)", 
+			criticalIssues = append(criticalIssues,
+				fmt.Sprintf("Resource assignment throughput (%.2f RPS) below requirement (>100 RPS)",
 					ps.ResourceAssignResults.ThroughputRPS))
-			recommendations = append(recommendations, 
+			recommendations = append(recommendations,
 				"Implement caching for load balancer decisions and optimize shard selection algorithm")
 		}
 	}
@@ -207,10 +207,10 @@ func (ps *PerformanceSummary) CalculateOverallAssessment() {
 			requirementsMet++
 		} else {
 			score -= 20
-			criticalIssues = append(criticalIssues, 
-				fmt.Sprintf("Migration speed (%.2f resources/sec) below requirement (>100 resources/sec)", 
+			criticalIssues = append(criticalIssues,
+				fmt.Sprintf("Migration speed (%.2f resources/sec) below requirement (>100 resources/sec)",
 					ps.MigrationResults.ResourcesPerSecond))
-			recommendations = append(recommendations, 
+			recommendations = append(recommendations,
 				"Implement parallel migration and optimize resource serialization")
 		}
 	}
@@ -222,10 +222,10 @@ func (ps *PerformanceSummary) CalculateOverallAssessment() {
 			requirementsMet++
 		} else {
 			score -= 30
-			criticalIssues = append(criticalIssues, 
-				fmt.Sprintf("Stress test success rate (%.2f%%) below requirement (>95%%)", 
+			criticalIssues = append(criticalIssues,
+				fmt.Sprintf("Stress test success rate (%.2f%%) below requirement (>95%%)",
 					ps.StressTestResults.SuccessRate))
-			recommendations = append(recommendations, 
+			recommendations = append(recommendations,
 				"Improve error handling and implement circuit breakers for better resilience")
 		}
 	}
@@ -233,7 +233,7 @@ func (ps *PerformanceSummary) CalculateOverallAssessment() {
 	// Determine grade and optimization priority
 	var grade string
 	var priority string
-	
+
 	switch {
 	case score >= 90:
 		grade = "A"
@@ -287,14 +287,14 @@ func (ps *PerformanceSummary) ExportToMarkdown() string {
 		md += "### 🚀 Shard Startup Performance\n\n"
 		md += "| Metric | Value | Requirement | Status |\n"
 		md += "|--------|-------|-------------|--------|\n"
-		md += fmt.Sprintf("| Average Startup Time | %.2fms | <1000ms | %s |\n", 
-			ps.ShardStartupResults.AverageStartupTimeMs, 
+		md += fmt.Sprintf("| Average Startup Time | %.2fms | <1000ms | %s |\n",
+			ps.ShardStartupResults.AverageStartupTimeMs,
 			getStatusIcon(ps.ShardStartupResults.RequirementMet))
-		md += fmt.Sprintf("| Min Startup Time | %.2fms | - | - |\n", 
+		md += fmt.Sprintf("| Min Startup Time | %.2fms | - | - |\n",
 			ps.ShardStartupResults.MinStartupTimeMs)
-		md += fmt.Sprintf("| Max Startup Time | %.2fms | - | - |\n", 
+		md += fmt.Sprintf("| Max Startup Time | %.2fms | - | - |\n",
 			ps.ShardStartupResults.MaxStartupTimeMs)
-		md += fmt.Sprintf("| Samples | %d | - | - |\n\n", 
+		md += fmt.Sprintf("| Samples | %d | - | - |\n\n",
 			ps.ShardStartupResults.SamplesCount)
 	}
 
@@ -303,21 +303,21 @@ func (ps *PerformanceSummary) ExportToMarkdown() string {
 		md += "### 📋 Resource Assignment Performance\n\n"
 		md += "| Metric | Value | Requirement | Status |\n"
 		md += "|--------|-------|-------------|--------|\n"
-		md += fmt.Sprintf("| Throughput | %.2f RPS | >100 RPS | %s |\n", 
-			ps.ResourceAssignResults.ThroughputRPS, 
+		md += fmt.Sprintf("| Throughput | %.2f RPS | >100 RPS | %s |\n",
+			ps.ResourceAssignResults.ThroughputRPS,
 			getStatusIcon(ps.ResourceAssignResults.RequirementMet))
-		md += fmt.Sprintf("| Average Latency | %.2fms | - | - |\n\n", 
+		md += fmt.Sprintf("| Average Latency | %.2fms | - | - |\n\n",
 			ps.ResourceAssignResults.AverageLatencyMs)
 	}
 
 	// Overall Assessment
 	if ps.OverallAssessment != nil {
 		md += "## 📊 Overall Assessment\n\n"
-		md += fmt.Sprintf("**Score:** %d/100 (Grade: %s)\n\n", 
+		md += fmt.Sprintf("**Score:** %d/100 (Grade: %s)\n\n",
 			ps.OverallAssessment.Score, ps.OverallAssessment.Grade)
-		md += fmt.Sprintf("**Requirements Met:** %d/%d\n\n", 
+		md += fmt.Sprintf("**Requirements Met:** %d/%d\n\n",
 			ps.OverallAssessment.RequirementsMet, ps.OverallAssessment.TotalRequirements)
-		
+
 		if len(ps.OverallAssessment.CriticalIssues) > 0 {
 			md += "### Critical Issues\n\n"
 			for _, issue := range ps.OverallAssessment.CriticalIssues {
@@ -325,7 +325,7 @@ func (ps *PerformanceSummary) ExportToMarkdown() string {
 			}
 			md += "\n"
 		}
-		
+
 		if len(ps.OverallAssessment.Recommendations) > 0 {
 			md += "### Recommendations\n\n"
 			for _, rec := range ps.OverallAssessment.Recommendations {
