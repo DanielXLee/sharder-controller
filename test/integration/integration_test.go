@@ -243,8 +243,8 @@ func (suite *IntegrationTestSuite) waitForCondition(timeout time.Duration, condi
 		}
 	}
 }
-//
- TestShardCreationAndDeletion tests basic shard lifecycle management
+
+// TestShardCreationAndDeletion tests basic shard lifecycle management
 func (suite *IntegrationTestSuite) TestShardCreationAndDeletion() {
 	// Create shard config
 	config := suite.createTestShardConfig()

@@ -1,13 +1,10 @@
 package performance
 
 import (
-	"context"
 	"fmt"
 	"runtime"
 	"sync"
 	"time"
-
-	"github.com/k8s-shard-controller/pkg/interfaces"
 )
 
 // PerformanceOptimizer analyzes system performance and suggests optimizations

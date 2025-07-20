@@ -342,10 +342,7 @@ func setupShardManager(k8sClient client.Client, kubeClient kubernetes.Interface)
 	metricsCollector := &performance.MockMetricsCollector{}
 	alertManager := &performance.MockAlertManager{}
 	logger := &performance.MockLogger{}
-	config := &performance.MockConfig{
-		Namespace: *namespace,
-		NodeName:  "performance-test-node",
-	}
+	config := performance.NewMockConfig(*namespace)
 
 	return controllers.NewShardManager(
 		k8sClient, kubeClient, loadBalancer, healthChecker,
@@ -373,7 +370,9 @@ func createTestResources(count, sizeBytes int) []*interfaces.Resource {
 		resources[i] = &interfaces.Resource{
 			ID:   fmt.Sprintf("perf-test-resource-%d", i),
 			Type: "performance-test",
-			Data: make([]byte, sizeBytes),
+			Data: map[string]string{
+				"payload": string(make([]byte, sizeBytes)),
+			},
 			Metadata: map[string]string{
 				"test_id":      fmt.Sprintf("%d", i),
 				"created_at":   time.Now().Format(time.RFC3339),

@@ -328,7 +328,41 @@ func (lb *LoadBalancer) GetStrategy() shardv1.LoadBalanceStrategy {
 }
 
 // SetStrategy changes the load balancing strategy
-func (lb *LoadBalancer) SetStrategy(strategy shardv1.LoadBalanceStrategy, shards []*shardv1.ShardInstance) error {
+func (lb *LoadBalancer) SetStrategy(strategy shardv1.LoadBalanceStrategy, shards []*shardv1.ShardInstance) {
+	if lb.strategy == strategy {
+		return // No change needed
+	}
+	
+	// Check if strategy is valid before setting it
+	switch strategy {
+	case shardv1.ConsistentHashStrategy:
+		lb.strategy = strategy
+		lb.consistentHash = utils.NewConsistentHash(10)
+		if shards != nil {
+			for _, shard := range shards {
+				if shard.Status.Phase == shardv1.ShardPhaseRunning {
+					lb.consistentHash.AddNode(shard.Spec.ShardID)
+				}
+			}
+		}
+	case shardv1.RoundRobinStrategy:
+		lb.strategy = strategy
+		lb.mu.Lock()
+		lb.lastShardIndex = -1
+		lb.mu.Unlock()
+		lb.consistentHash = nil
+	case shardv1.LeastLoadedStrategy:
+		lb.strategy = strategy
+		lb.consistentHash = nil
+	default:
+		// Log error but don't change strategy since it's invalid
+		fmt.Printf("Warning: unsupported load balance strategy: %s, keeping current strategy\n", strategy)
+		return
+	}
+}
+
+// SetStrategyWithError changes the load balancing strategy and returns error if any
+func (lb *LoadBalancer) SetStrategyWithError(strategy shardv1.LoadBalanceStrategy, shards []*shardv1.ShardInstance) error {
 	if lb.strategy == strategy {
 		return nil // No change needed
 	}

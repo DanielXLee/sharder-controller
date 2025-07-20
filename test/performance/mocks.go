@@ -12,6 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	shardv1 "github.com/k8s-shard-controller/pkg/apis/shard/v1"
+	"github.com/k8s-shard-controller/pkg/config"
 	"github.com/k8s-shard-controller/pkg/interfaces"
 )
 
@@ -47,6 +48,10 @@ func (m *MockLoadBalancer) GenerateRebalancePlan(shards []*shardv1.ShardInstance
 	return &shardv1.MigrationPlan{}, nil
 }
 
+func (m *MockLoadBalancer) SetStrategy(strategy shardv1.LoadBalanceStrategy, shards []*shardv1.ShardInstance) {
+	m.shards = shards
+}
+
 type MockHealthChecker struct{}
 
 func (m *MockHealthChecker) CheckHealth(ctx context.Context, shard *shardv1.ShardInstance) (*shardv1.HealthStatus, error) {
@@ -73,13 +78,33 @@ func (m *MockHealthChecker) OnShardRecovered(ctx context.Context, shardId string
 	return nil
 }
 
+func (m *MockHealthChecker) CheckShardHealth(ctx context.Context, shardId string) (*shardv1.HealthStatus, error) {
+	return &shardv1.HealthStatus{
+		Healthy:   true,
+		LastCheck: metav1.Now(),
+		Message:   "Mock healthy",
+	}, nil
+}
+
+func (m *MockHealthChecker) IsShardHealthy(shardId string) bool {
+	return true
+}
+
+func (m *MockHealthChecker) GetUnhealthyShards() []string {
+	return []string{}
+}
+
+func (m *MockHealthChecker) GetHealthSummary() map[string]*shardv1.HealthStatus {
+	return make(map[string]*shardv1.HealthStatus)
+}
+
 type MockResourceMigrator struct{}
 
 func (m *MockResourceMigrator) CreateMigrationPlan(ctx context.Context, sourceShardId, targetShardId string, resources []*interfaces.Resource) (*shardv1.MigrationPlan, error) {
 	return &shardv1.MigrationPlan{
 		SourceShard:   sourceShardId,
 		TargetShard:   targetShardId,
-		EstimatedTime: time.Duration(len(resources)) * time.Millisecond,
+		EstimatedTime: metav1.Duration{Duration: time.Duration(len(resources)) * time.Millisecond},
 		Priority:      shardv1.MigrationPriorityMedium,
 	}, nil
 }
@@ -126,6 +151,29 @@ func (m *MockConfigManager) ValidateConfig(config *shardv1.ShardConfig) error {
 
 func (m *MockConfigManager) WatchConfigChanges(ctx context.Context, callback func(*shardv1.ShardConfig)) error {
 	return nil
+}
+
+func (m *MockConfigManager) GetCurrentConfig() *shardv1.ShardConfig {
+	return &shardv1.ShardConfig{
+		Spec: shardv1.ShardConfigSpec{
+			MinShards:           1,
+			MaxShards:           100,
+			ScaleUpThreshold:    0.8,
+			ScaleDownThreshold:  0.2,
+			LoadBalanceStrategy: shardv1.ConsistentHashStrategy,
+		},
+	}
+}
+
+func (m *MockConfigManager) LoadFromConfigMap(ctx context.Context, configMapName, namespace string) (*shardv1.ShardConfig, error) {
+	return m.LoadConfig(ctx)
+}
+
+func (m *MockConfigManager) StartWatching(ctx context.Context) error {
+	return nil
+}
+
+func (m *MockConfigManager) StopWatching() {
 }
 
 type MockMetricsCollector struct{}
@@ -221,9 +269,11 @@ func (m *MockLogger) LogPerformanceEvent(ctx context.Context, operation, compone
 func (m *MockLogger) LogConfigEvent(ctx context.Context, configType string, changes map[string]interface{}) {
 }
 
-type MockConfig struct {
-	Namespace string
-	NodeName  string
+// MockConfig implements the config.Config interface for testing
+func NewMockConfig(namespace string) *config.Config {
+	cfg := config.DefaultConfig()
+	cfg.Namespace = namespace
+	return cfg
 }
 
 // Helper functions

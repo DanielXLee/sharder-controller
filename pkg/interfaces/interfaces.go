@@ -67,6 +67,9 @@ type LoadBalancer interface {
 	CalculateShardLoad(shard *shardv1.ShardInstance) float64
 	GetOptimalShard(shards []*shardv1.ShardInstance) (*shardv1.ShardInstance, error)
 	
+	// Strategy management
+	SetStrategy(strategy shardv1.LoadBalanceStrategy, shards []*shardv1.ShardInstance)
+	
 	// Rebalancing
 	ShouldRebalance(shards []*shardv1.ShardInstance) bool
 	GenerateRebalancePlan(shards []*shardv1.ShardInstance) (*shardv1.MigrationPlan, error)
@@ -79,8 +82,14 @@ type LoadBalancer interface {
 type HealthChecker interface {
 	// Health checking
 	CheckHealth(ctx context.Context, shard *shardv1.ShardInstance) (*shardv1.HealthStatus, error)
+	CheckShardHealth(ctx context.Context, shardId string) (*shardv1.HealthStatus, error)
 	StartHealthChecking(ctx context.Context, interval time.Duration) error
 	StopHealthChecking() error
+	
+	// Health status queries
+	IsShardHealthy(shardId string) bool
+	GetUnhealthyShards() []string
+	GetHealthSummary() map[string]*shardv1.HealthStatus
 	
 	// Failure handling
 	OnShardFailed(ctx context.Context, shardId string) error
@@ -106,13 +115,17 @@ type ResourceMigrator interface {
 type ConfigManager interface {
 	// Configuration loading
 	LoadConfig(ctx context.Context) (*shardv1.ShardConfig, error)
+	LoadFromConfigMap(ctx context.Context, configMapName, namespace string) (*shardv1.ShardConfig, error)
 	ReloadConfig(ctx context.Context) error
+	GetCurrentConfig() *shardv1.ShardConfig
 	
 	// Configuration validation
 	ValidateConfig(config *shardv1.ShardConfig) error
 	
 	// Configuration watching
 	WatchConfigChanges(ctx context.Context, callback func(*shardv1.ShardConfig)) error
+	StartWatching(ctx context.Context) error
+	StopWatching()
 }
 
 // MetricsCollector defines the interface for metrics collection
@@ -172,6 +185,40 @@ const (
 
 // StructuredLogger defines the interface for structured logging
 type StructuredLogger interface {
+	// Event logging
+	LogShardEvent(ctx context.Context, event string, shardID string, fields map[string]interface{})
+	LogMigrationEvent(ctx context.Context, sourceShard, targetShard string, resourceCount int, status string, duration time.Duration)
+	LogScaleEvent(ctx context.Context, operation string, fromCount, toCount int, reason string, status string)
+	LogHealthEvent(ctx context.Context, shardID string, healthy bool, errorCount int, message string)
+	LogErrorEvent(ctx context.Context, component, operation string, err error, fields map[string]interface{})
+	LogPerformanceEvent(ctx context.Context, operation, component string, duration time.Duration, success bool)
+	LogConfigEvent(ctx context.Context, configType string, changes map[string]interface{})
+	LogSystemEvent(ctx context.Context, event string, severity string, fields map[string]interface{})
+}
+
+// Alerting defines the interface for alerting operations
+type Alerting interface {
+	// Alert management
+	SendAlert(ctx context.Context, alert Alert) error
+	ConfigureWebhook(webhookURL string) error
+	
+	// Specific alert types
+	AlertShardFailure(ctx context.Context, shardID string, reason string) error
+	AlertHighErrorRate(ctx context.Context, component string, errorRate float64, threshold float64) error
+	AlertScaleEvent(ctx context.Context, operation string, fromCount, toCount int, reason string) error
+	AlertMigrationFailure(ctx context.Context, sourceShard, targetShard string, resourceCount int, reason string) error
+	AlertSystemOverload(ctx context.Context, totalLoad float64, threshold float64, shardCount int) error
+	AlertConfigurationChange(ctx context.Context, configType string, changes map[string]interface{}) error
+}
+
+// Logger defines the interface for logging operations
+type Logger interface {
+	// Basic logging
+	Info(msg string, fields map[string]interface{})
+	Warn(msg string, fields map[string]interface{})
+	Error(msg string, err error, fields map[string]interface{})
+	Debug(msg string, fields map[string]interface{})
+	
 	// Event logging
 	LogShardEvent(ctx context.Context, event string, shardID string, fields map[string]interface{})
 	LogMigrationEvent(ctx context.Context, sourceShard, targetShard string, resourceCount int, status string, duration time.Duration)

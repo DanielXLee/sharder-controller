@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"encoding/json"
 	"testing"
 	"time"
 
@@ -117,6 +116,9 @@ func TestValidateShardInstance(t *testing.T) {
 						Start: 0,
 						End:   1000,
 					},
+				},
+				Status: ShardInstanceStatus{
+					Phase: ShardPhasePending,
 				},
 			},
 			wantErr: false,
@@ -240,8 +242,9 @@ func TestValidateShardPhaseTransition(t *testing.T) {
 			}
 		})
 	}
-}//
- Test serialization methods
+}
+
+// Test serialization methods
 func TestShardConfigSerialization(t *testing.T) {
 	config := &ShardConfig{
 		ObjectMeta: metav1.ObjectMeta{
@@ -472,10 +475,14 @@ func TestHealthStatus(t *testing.T) {
 	}
 
 	// Test IsStale
+	healthStatus.LastCheck = metav1.Now()
 	time.Sleep(time.Millisecond)
-	if healthStatus.IsStale(time.Microsecond) {
+	if healthStatus.IsStale(time.Hour) {
 		t.Error("Expected health status not to be stale with very short duration")
 	}
+	
+	// Set an old timestamp to test staleness
+	healthStatus.LastCheck = metav1.Time{Time: time.Now().Add(-2 * time.Hour)}
 	if !healthStatus.IsStale(time.Hour) {
 		t.Error("Expected health status to be stale with long duration")
 	}

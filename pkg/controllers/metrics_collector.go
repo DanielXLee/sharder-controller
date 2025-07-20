@@ -318,12 +318,15 @@ func (mc *MetricsCollector) StartMetricsServer(ctx context.Context) error {
 		return nil
 	}
 
-	server := &http.Server{
-		Addr: fmt.Sprintf(":%d", mc.config.Port),
-	}
-
+	// Create a new ServeMux to avoid conflicts with global handler
+	mux := http.NewServeMux()
 	handler := promhttp.HandlerFor(mc.registry, promhttp.HandlerOpts{})
-	http.Handle(mc.config.Path, handler)
+	mux.Handle(mc.config.Path, handler)
+
+	server := &http.Server{
+		Addr:    fmt.Sprintf(":%d", mc.config.Port),
+		Handler: mux,
+	}
 
 	go func() {
 		<-ctx.Done()

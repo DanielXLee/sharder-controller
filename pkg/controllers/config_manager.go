@@ -609,6 +609,46 @@ func (cm *ConfigManager) UpdateConfigMap(ctx context.Context, data map[string]st
 	return cm.client.Update(ctx, configMap)
 }
 
+// LoadFromConfigMap loads configuration from a specific ConfigMap
+func (cm *ConfigManager) LoadFromConfigMap(ctx context.Context, configMapName, namespace string) (*shardv1.ShardConfig, error) {
+	configMap := &corev1.ConfigMap{}
+	err := cm.client.Get(ctx, types.NamespacedName{
+		Namespace: namespace,
+		Name:      configMapName,
+	}, configMap)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get ConfigMap %s/%s: %w", namespace, configMapName, err)
+	}
+
+	// Create a new ShardConfig with defaults
+	shardConfig := cm.createDefaultShardConfig()
+	shardConfig.Namespace = namespace
+
+	// Parse configuration from ConfigMap data
+	if err := cm.parseConfigMapData(configMap.Data, shardConfig); err != nil {
+		return nil, fmt.Errorf("failed to parse ConfigMap data: %w", err)
+	}
+
+	// Apply defaults and validate
+	cm.applyDefaults(shardConfig)
+	if err := cm.ValidateConfig(shardConfig); err != nil {
+		return nil, fmt.Errorf("invalid configuration from ConfigMap: %w", err)
+	}
+
+	return shardConfig, nil
+}
+
+// StartWatching starts watching for configuration changes
+func (cm *ConfigManager) StartWatching(ctx context.Context) error {
+	return cm.StartHotReload(ctx)
+}
+
+// StopWatching stops watching for configuration changes
+func (cm *ConfigManager) StopWatching() {
+	cm.StopHotReload()
+}
+
 // ValidateAndApplyConfig validates and applies a new configuration
 func (cm *ConfigManager) ValidateAndApplyConfig(ctx context.Context, newConfig *shardv1.ShardConfig) error {
 	// Validate the new configuration

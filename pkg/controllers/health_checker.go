@@ -368,9 +368,22 @@ func (hc *HealthChecker) StopHealthChecking() error {
 
 // OnShardFailed handles a failed shard
 func (hc *HealthChecker) OnShardFailed(ctx context.Context, shardId string) error {
-	shard := &shardv1.ShardInstance{}
-	if err := hc.client.Get(ctx, client.ObjectKey{Name: shardId}, shard); err != nil {
+	// List all shards to find the one with matching ShardID
+	shardList := &shardv1.ShardInstanceList{}
+	if err := hc.client.List(ctx, shardList); err != nil {
 		return err
+	}
+
+	var shard *shardv1.ShardInstance
+	for i := range shardList.Items {
+		if shardList.Items[i].Spec.ShardID == shardId {
+			shard = &shardList.Items[i]
+			break
+		}
+	}
+
+	if shard == nil {
+		return fmt.Errorf("shard %s not found", shardId)
 	}
 
 	shard.Status.Phase = shardv1.ShardPhaseFailed
@@ -386,9 +399,22 @@ func (hc *HealthChecker) OnShardFailed(ctx context.Context, shardId string) erro
 
 // OnShardRecovered handles a recovered shard
 func (hc *HealthChecker) OnShardRecovered(ctx context.Context, shardId string) error {
-	shard := &shardv1.ShardInstance{}
-	if err := hc.client.Get(ctx, client.ObjectKey{Name: shardId}, shard); err != nil {
+	// List all shards to find the one with matching ShardID
+	shardList := &shardv1.ShardInstanceList{}
+	if err := hc.client.List(ctx, shardList); err != nil {
 		return err
+	}
+
+	var shard *shardv1.ShardInstance
+	for i := range shardList.Items {
+		if shardList.Items[i].Spec.ShardID == shardId {
+			shard = &shardList.Items[i]
+			break
+		}
+	}
+
+	if shard == nil {
+		return fmt.Errorf("shard %s not found", shardId)
 	}
 
 	shard.Status.Phase = shardv1.ShardPhaseRunning
@@ -404,9 +430,22 @@ func (hc *HealthChecker) OnShardRecovered(ctx context.Context, shardId string) e
 
 // ReportHeartbeat updates the heartbeat timestamp for a shard
 func (hc *HealthChecker) ReportHeartbeat(ctx context.Context, shardId string) error {
-	shard := &shardv1.ShardInstance{}
-	if err := hc.client.Get(ctx, client.ObjectKey{Name: shardId}, shard); err != nil {
-		return fmt.Errorf("failed to get shard %s: %w", shardId, err)
+	// List all shards to find the one with matching ShardID
+	shardList := &shardv1.ShardInstanceList{}
+	if err := hc.client.List(ctx, shardList); err != nil {
+		return fmt.Errorf("failed to list shards: %w", err)
+	}
+
+	var shard *shardv1.ShardInstance
+	for i := range shardList.Items {
+		if shardList.Items[i].Spec.ShardID == shardId {
+			shard = &shardList.Items[i]
+			break
+		}
+	}
+
+	if shard == nil {
+		return fmt.Errorf("shard %s not found", shardId)
 	}
 
 	// Update heartbeat timestamp
@@ -510,6 +549,18 @@ func (hc *HealthChecker) GetUnhealthyShards() []string {
 	}
 	
 	return unhealthy
+}
+
+// CheckShardHealth checks the health of a shard by ID
+func (hc *HealthChecker) CheckShardHealth(ctx context.Context, shardId string) (*shardv1.HealthStatus, error) {
+	// Get the shard from Kubernetes
+	shard := &shardv1.ShardInstance{}
+	if err := hc.client.Get(ctx, client.ObjectKey{Name: shardId}, shard); err != nil {
+		return nil, fmt.Errorf("failed to get shard %s: %w", shardId, err)
+	}
+
+	// Check the shard's health
+	return hc.CheckHealth(ctx, shard)
 }
 
 // CleanupShardData removes health data for a shard (called when shard is deleted)

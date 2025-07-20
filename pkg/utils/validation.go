@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	shardv1 "github.com/k8s-shard-controller/pkg/apis/shard/v1"
@@ -17,8 +18,15 @@ func IsShardHealthy(status *shardv1.ShardInstanceStatus) bool {
 	// A shard is healthy if it's in the Running phase and its health status is marked as healthy.
 	isPhaseRunning := status.Phase == shardv1.ShardPhaseRunning
 	isHealthStatusOk := status.HealthStatus != nil && status.HealthStatus.Healthy
+	
+	// Check if heartbeat is fresh (within last 2 minutes)
+	heartbeatFresh := true
+	if !status.LastHeartbeat.IsZero() {
+		heartbeatAge := time.Since(status.LastHeartbeat.Time)
+		heartbeatFresh = heartbeatAge <= 2*time.Minute
+	}
 
-	return isPhaseRunning && isHealthStatusOk
+	return isPhaseRunning && isHealthStatusOk && heartbeatFresh
 }
 
 // ValidateShardConfig validates a ShardConfig specification

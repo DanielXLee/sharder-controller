@@ -319,8 +319,20 @@ func TestShouldRebalance(t *testing.T) {
 		{
 			name: "imbalanced shards",
 			shards: []*shardv1.ShardInstance{
-				{Status: shardv1.ShardInstanceStatus{Load: 0.1}},
-				{Status: shardv1.ShardInstanceStatus{Load: 0.8}},
+				{
+					Status: shardv1.ShardInstanceStatus{
+						Phase:        shardv1.ShardPhaseRunning,
+						HealthStatus: &shardv1.HealthStatus{Healthy: true},
+						Load:         0.1,
+					},
+				},
+				{
+					Status: shardv1.ShardInstanceStatus{
+						Phase:        shardv1.ShardPhaseRunning,
+						HealthStatus: &shardv1.HealthStatus{Healthy: true},
+						Load:         0.8,
+					},
+				},
 			},
 			expected: true,
 		},
@@ -342,6 +354,8 @@ func TestGenerateRebalancePlan(t *testing.T) {
 			{
 				Spec: shardv1.ShardInstanceSpec{ShardID: "shard1"},
 				Status: shardv1.ShardInstanceStatus{
+					Phase:             shardv1.ShardPhaseRunning,
+					HealthStatus:      &shardv1.HealthStatus{Healthy: true},
 					Load:              0.8,
 					AssignedResources: []string{"res1", "res2", "res3", "res4", "res5"},
 				},
@@ -349,7 +363,9 @@ func TestGenerateRebalancePlan(t *testing.T) {
 			{
 				Spec: shardv1.ShardInstanceSpec{ShardID: "shard2"},
 				Status: shardv1.ShardInstanceStatus{
-					Load: 0.1,
+					Phase:        shardv1.ShardPhaseRunning,
+					HealthStatus: &shardv1.HealthStatus{Healthy: true},
+					Load:         0.1,
 				},
 			},
 		}
@@ -427,12 +443,20 @@ func TestGetLoadDistribution(t *testing.T) {
 
 	shards := []*shardv1.ShardInstance{
 		{
-			Spec:   shardv1.ShardInstanceSpec{ShardID: "shard1"},
-			Status: shardv1.ShardInstanceStatus{Load: 0.3},
+			Spec: shardv1.ShardInstanceSpec{ShardID: "shard1"},
+			Status: shardv1.ShardInstanceStatus{
+				Phase:        shardv1.ShardPhaseRunning,
+				HealthStatus: &shardv1.HealthStatus{Healthy: true},
+				Load:         0.3,
+			},
 		},
 		{
-			Spec:   shardv1.ShardInstanceSpec{ShardID: "shard2"},
-			Status: shardv1.ShardInstanceStatus{Load: 0.7},
+			Spec: shardv1.ShardInstanceSpec{ShardID: "shard2"},
+			Status: shardv1.ShardInstanceStatus{
+				Phase:        shardv1.ShardPhaseRunning,
+				HealthStatus: &shardv1.HealthStatus{Healthy: true},
+				Load:         0.7,
+			},
 		},
 	}
 
@@ -456,20 +480,18 @@ func TestSetStrategy(t *testing.T) {
 	}
 
 	// Change to consistent hash
-	err = lb.SetStrategy(shardv1.ConsistentHashStrategy, shards)
-	assert.NoError(t, err)
+	lb.SetStrategy(shardv1.ConsistentHashStrategy, shards)
 	assert.Equal(t, shardv1.ConsistentHashStrategy, lb.GetStrategy())
 	assert.NotNil(t, lb.consistentHash)
 
 	// Change to least loaded
-	err = lb.SetStrategy(shardv1.LeastLoadedStrategy, shards)
-	assert.NoError(t, err)
+	lb.SetStrategy(shardv1.LeastLoadedStrategy, shards)
 	assert.Equal(t, shardv1.LeastLoadedStrategy, lb.GetStrategy())
 	assert.Nil(t, lb.consistentHash)
 
-	// Invalid strategy
-	err = lb.SetStrategy("invalid", shards)
-	assert.Error(t, err)
+	// Invalid strategy - should keep current strategy
+	lb.SetStrategy("invalid", shards)
+	assert.Equal(t, shardv1.LeastLoadedStrategy, lb.GetStrategy()) // Should remain unchanged
 }
 
 func TestCalculateRebalanceScore(t *testing.T) {

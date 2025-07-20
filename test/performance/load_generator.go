@@ -11,7 +11,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	shardv1 "github.com/k8s-shard-controller/pkg/apis/shard/v1"
 	"github.com/k8s-shard-controller/pkg/interfaces"
 )
 

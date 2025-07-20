@@ -49,6 +49,10 @@ func (m *MockLoadBalancer) AssignResourceToShard(resource *interfaces.Resource, 
 	return args.Get(0).(*shardv1.ShardInstance), args.Error(1)
 }
 
+func (m *MockLoadBalancer) SetStrategy(strategy shardv1.LoadBalanceStrategy, shards []*shardv1.ShardInstance) {
+	m.Called(strategy, shards)
+}
+
 type MockHealthChecker struct {
 	mock.Mock
 }
@@ -76,6 +80,26 @@ func (m *MockHealthChecker) OnShardFailed(ctx context.Context, shardId string) e
 func (m *MockHealthChecker) OnShardRecovered(ctx context.Context, shardId string) error {
 	args := m.Called(ctx, shardId)
 	return args.Error(0)
+}
+
+func (m *MockHealthChecker) CheckShardHealth(ctx context.Context, shardId string) (*shardv1.HealthStatus, error) {
+	args := m.Called(ctx, shardId)
+	return args.Get(0).(*shardv1.HealthStatus), args.Error(1)
+}
+
+func (m *MockHealthChecker) IsShardHealthy(shardId string) bool {
+	args := m.Called(shardId)
+	return args.Bool(0)
+}
+
+func (m *MockHealthChecker) GetUnhealthyShards() []string {
+	args := m.Called()
+	return args.Get(0).([]string)
+}
+
+func (m *MockHealthChecker) GetHealthSummary() map[string]*shardv1.HealthStatus {
+	args := m.Called()
+	return args.Get(0).(map[string]*shardv1.HealthStatus)
 }
 
 type MockResourceMigrator struct {
@@ -124,6 +148,25 @@ func (m *MockConfigManager) ValidateConfig(config *shardv1.ShardConfig) error {
 func (m *MockConfigManager) WatchConfigChanges(ctx context.Context, callback func(*shardv1.ShardConfig)) error {
 	args := m.Called(ctx, callback)
 	return args.Error(0)
+}
+
+func (m *MockConfigManager) GetCurrentConfig() *shardv1.ShardConfig {
+	args := m.Called()
+	return args.Get(0).(*shardv1.ShardConfig)
+}
+
+func (m *MockConfigManager) LoadFromConfigMap(ctx context.Context, configMapName, namespace string) (*shardv1.ShardConfig, error) {
+	args := m.Called(ctx, configMapName, namespace)
+	return args.Get(0).(*shardv1.ShardConfig), args.Error(1)
+}
+
+func (m *MockConfigManager) StartWatching(ctx context.Context) error {
+	args := m.Called(ctx)
+	return args.Error(0)
+}
+
+func (m *MockConfigManager) StopWatching() {
+	m.Called()
 }
 
 type MockMetricsCollector struct {
