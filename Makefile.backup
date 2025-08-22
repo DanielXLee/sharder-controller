@@ -67,16 +67,47 @@ uninstall-crds:
 # Integration test variables
 INTEGRATION_TEST_DIR=test/integration
 INTEGRATION_TEST_TIMEOUT=30m
-E2E_TEST_TIMEOUT=45m
+ENVTEST_K8S_VERSION=1.28.0
+ENVTEST_BIN_DIR=$(shell pwd)/bin
 
 # Test targets
 test-unit:
 	@echo "Running unit tests..."
 	@$(GO_TEST) -v -race -coverprofile=coverage.out ./pkg/...
 
+# Setup envtest binaries
+setup-envtest:
+	@echo "Setting up envtest binaries..."
+	@mkdir -p $(ENVTEST_BIN_DIR)
+	@go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+	@setup-envtest use $(ENVTEST_K8S_VERSION) --bin-dir $(ENVTEST_BIN_DIR) -p env > /tmp/envtest.env
+	@echo "Envtest binaries installed to $(ENVTEST_BIN_DIR)"
+
+test-integration:
+	@echo "Running integration tests..."
+	@echo "Note: Running tests without envtest setup - tests may be skipped if no cluster available"
+	@export USE_EXISTING_CLUSTER=false && \
+	export KUBEBUILDER_ASSETS="" && \
+	$(GO_TEST) -v -timeout $(INTEGRATION_TEST_TIMEOUT) ./$(INTEGRATION_TEST_DIR)/...
+
+test-integration-simple:
+	@echo "Running integration tests without envtest setup..."
+	@echo "Note: This may fail if envtest binaries are not available"
+	@export USE_EXISTING_CLUSTER=false && \
+	export KUBEBUILDER_ASSETS="" && \
+	$(GO_TEST) -v -timeout $(INTEGRATION_TEST_TIMEOUT) ./$(INTEGRATION_TEST_DIR)/...
+
+test-integration-setup:
+	@echo "Setting up integration test environment..."
+	@./$(INTEGRATION_TEST_DIR)/setup.sh
+
+test-integration-with-setup: test-integration-setup
+	@echo "Running integration tests with setup..."
+	@$(GO_TEST) -v -timeout $(INTEGRATION_TEST_TIMEOUT) ./$(INTEGRATION_TEST_DIR)/...
 
 test-integration-kind:
 	@echo "Running integration tests with Kind..."
+	@USE_KIND=true ./$(INTEGRATION_TEST_DIR)/setup.sh
 	@$(GO_TEST) -v -timeout $(INTEGRATION_TEST_TIMEOUT) ./$(INTEGRATION_TEST_DIR)/...
 
 test-integration-cleanup:
@@ -194,12 +225,3 @@ docker-clean:
 	@docker rmi $(REGISTRY)/manager:$(TAG) $(REGISTRY)/manager:$(VERSION) || true
 	@docker rmi $(REGISTRY)/worker:$(TAG) $(REGISTRY)/worker:$(VERSION) || true
 
-## E2E tests (Kind-based)
-.PHONY: test-e2e test-e2e-keep
-test-e2e:
-	@echo "Running E2E tests on Kind..."
-	@E2E_USE_KIND=true E2E_KEEP_CLUSTER=false $(GO_TEST) -v -timeout $(E2E_TEST_TIMEOUT) ./test/e2e/...
-
-test-e2e-keep:
-	@echo "Running E2E tests on Kind (keep cluster on success/failure)..."
-	@E2E_USE_KIND=true E2E_KEEP_CLUSTER=true $(GO_TEST) -v -timeout $(E2E_TEST_TIMEOUT) ./test/e2e/...

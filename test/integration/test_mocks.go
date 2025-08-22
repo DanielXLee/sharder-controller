@@ -12,6 +12,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// Helper function to create a valid HealthStatus
+func createHealthStatus(healthy bool, message string) *shardv1.HealthStatus {
+	return &shardv1.HealthStatus{
+		Healthy:    healthy,
+		LastCheck:  metav1.Now(),
+		ErrorCount: 0,
+		Message:    message,
+	}
+}
+
 // MockShardManager implements interfaces.ShardManager for testing
 type MockShardManager struct {
 	client       client.Client
@@ -27,7 +37,7 @@ func NewMockShardManager(client client.Client) *MockShardManager {
 	}
 }
 
-func (m *MockShardManager) CreateShard(ctx context.Context, config *shardv1.ShardConfigSpec) (*shardv1.ShardInstance, error) {
+func (m *MockShardManager) CreateShard(ctx context.Context, config *shardv1.ShardConfig) (*shardv1.ShardInstance, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -49,8 +59,13 @@ func (m *MockShardManager) CreateShard(ctx context.Context, config *shardv1.Shar
 		Status: shardv1.ShardInstanceStatus{
 			Phase:         shardv1.ShardPhasePending,
 			LastHeartbeat: metav1.Now(),
-			HealthStatus:  &shardv1.HealthStatus{Healthy: true},
-			Load:          0.0,
+			HealthStatus: &shardv1.HealthStatus{
+				Healthy:    true,
+				LastCheck:  metav1.Now(),
+				ErrorCount: 0,
+				Message:    "Shard created",
+			},
+			Load: 0.0,
 		},
 	}
 
@@ -87,7 +102,7 @@ func (m *MockShardManager) ScaleUp(ctx context.Context, targetCount int) error {
 	m.mu.RUnlock()
 
 	for i := currentCount; i < targetCount; i++ {
-		_, err := m.CreateShard(ctx, &shardv1.ShardConfigSpec{})
+		_, err := m.CreateShard(ctx, &shardv1.ShardConfig{})
 		if err != nil {
 			return err
 		}
@@ -322,8 +337,10 @@ func (m *MockHealthChecker) CheckShardHealth(ctx context.Context, shardId string
 	}
 
 	return &shardv1.HealthStatus{
-		Healthy:   true,
-		LastCheck: metav1.Now(),
+		Healthy:    true,
+		LastCheck:  metav1.Now(),
+		ErrorCount: 0,
+		Message:    "Health check passed",
 	}, nil
 }
 
@@ -405,9 +422,10 @@ func (m *MockHealthChecker) OnShardRecovered(ctx context.Context, shardId string
 
 	m.unhealthyShards[shardId] = false
 	m.healthStatus[shardId] = &shardv1.HealthStatus{
-		Healthy:   true,
-		LastCheck: metav1.Now(),
-		Message:   "Shard recovered",
+		Healthy:    true,
+		LastCheck:  metav1.Now(),
+		ErrorCount: 0,
+		Message:    "Shard recovered",
 	}
 	return nil
 }
@@ -437,8 +455,10 @@ func (m *MockHealthChecker) performHealthCheck(ctx context.Context) {
 		} else {
 			m.unhealthyShards[shard.Spec.ShardID] = false
 			m.healthStatus[shard.Spec.ShardID] = &shardv1.HealthStatus{
-				Healthy:   true,
-				LastCheck: metav1.Now(),
+				Healthy:    true,
+				LastCheck:  metav1.Now(),
+				ErrorCount: 0,
+				Message:    "Health check passed",
 			}
 		}
 	}
@@ -713,4 +733,34 @@ func (m *MockLogger) LogConfigEvent(ctx context.Context, configType string, chan
 }
 
 func (m *MockLogger) LogSystemEvent(ctx context.Context, event string, severity string, fields map[string]interface{}) {
+}
+// MockStructuredLogger implements interfaces.StructuredLogger for testing
+type MockStructuredLogger struct{}
+
+func NewMockStructuredLogger() *MockStructuredLogger {
+	return &MockStructuredLogger{}
+}
+
+func (m *MockStructuredLogger) LogShardEvent(ctx context.Context, event string, shardID string, fields map[string]interface{}) {
+}
+
+func (m *MockStructuredLogger) LogMigrationEvent(ctx context.Context, sourceShard, targetShard string, resourceCount int, status string, duration time.Duration) {
+}
+
+func (m *MockStructuredLogger) LogScaleEvent(ctx context.Context, operation string, fromCount, toCount int, reason string, status string) {
+}
+
+func (m *MockStructuredLogger) LogHealthEvent(ctx context.Context, shardID string, healthy bool, errorCount int, message string) {
+}
+
+func (m *MockStructuredLogger) LogErrorEvent(ctx context.Context, component, operation string, err error, fields map[string]interface{}) {
+}
+
+func (m *MockStructuredLogger) LogPerformanceEvent(ctx context.Context, operation, component string, duration time.Duration, success bool) {
+}
+
+func (m *MockStructuredLogger) LogConfigEvent(ctx context.Context, configType string, changes map[string]interface{}) {
+}
+
+func (m *MockStructuredLogger) LogSystemEvent(ctx context.Context, event string, severity string, fields map[string]interface{}) {
 }

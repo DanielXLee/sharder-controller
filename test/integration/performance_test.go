@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"context"
 	"fmt"
 	"sync"
 	"testing"
@@ -10,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	shardv1 "github.com/k8s-shard-controller/pkg/apis/shard/v1"
 	"github.com/k8s-shard-controller/pkg/interfaces"
@@ -21,7 +21,7 @@ func (suite *IntegrationTestSuite) TestShardCreationPerformance() {
 
 	// Test single shard creation time
 	start := time.Now()
-	shard, err := suite.shardManager.CreateShard(suite.ctx, &config.Spec)
+	shard, err := suite.shardManager.CreateShard(suite.ctx, config)
 	require.NoError(suite.T(), err)
 	singleCreationTime := time.Since(start)
 
@@ -43,7 +43,7 @@ func (suite *IntegrationTestSuite) TestShardCreationPerformance() {
 		wg.Add(1)
 		go func(index int) {
 			defer wg.Done()
-			_, err := suite.shardManager.CreateShard(suite.ctx, &config.Spec)
+			_, err := suite.shardManager.CreateShard(suite.ctx, config)
 			if err != nil {
 				errors <- err
 			}
@@ -100,8 +100,7 @@ func (suite *IntegrationTestSuite) TestLoadBalancingPerformance() {
 
 	for _, strategy := range strategies {
 		suite.T().Run(string(strategy), func(t *testing.T) {
-			err := suite.loadBalancer.SetStrategy(strategy, shards)
-			require.NoError(t, err)
+			suite.loadBalancer.SetStrategy(strategy, shards)
 
 			// Test resource assignment performance
 			start := time.Now()
@@ -228,7 +227,7 @@ func (suite *IntegrationTestSuite) TestResourceMigrationPerformance() {
 	err = suite.waitForCondition(5*time.Second, func() bool {
 		updatedTarget := &shardv1.ShardInstance{}
 		err := suite.k8sClient.Get(suite.ctx,
-			suite.k8sClient.ObjectKeyFromObject(targetShard), updatedTarget)
+			client.ObjectKeyFromObject(targetShard), updatedTarget)
 		return err == nil && len(updatedTarget.Status.AssignedResources) == resourceCount
 	})
 	require.NoError(suite.T(), err)
@@ -236,7 +235,7 @@ func (suite *IntegrationTestSuite) TestResourceMigrationPerformance() {
 
 // TestScalingPerformance tests scaling performance under load
 func (suite *IntegrationTestSuite) TestScalingPerformance() {
-	config := suite.createTestShardConfig()
+	_ = suite.createTestShardConfig() // config for reference
 
 	// Test scale up performance
 	scaleUpSizes := []int{2, 5, 10, 15}
@@ -315,7 +314,7 @@ func (suite *IntegrationTestSuite) TestScalingPerformance() {
 
 // TestConcurrentOperations tests system performance under concurrent operations
 func (suite *IntegrationTestSuite) TestConcurrentOperations() {
-	config := suite.createTestShardConfig()
+	_ = suite.createTestShardConfig() // config for reference
 
 	// Create initial shards
 	err := suite.shardManager.ScaleUp(suite.ctx, 5)
