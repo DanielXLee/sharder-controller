@@ -203,3 +203,34 @@ test-e2e:
 test-e2e-keep:
 	@echo "Running E2E tests on Kind (keep cluster on success/failure)..."
 	@E2E_USE_KIND=true E2E_KEEP_CLUSTER=true $(GO_TEST) -v -timeout $(E2E_TEST_TIMEOUT) ./test/e2e/...
+
+# Demo targets
+.PHONY: demo demo-comprehensive demo-advanced demo-performance demo-launcher demo-cleanup
+
+# Run the interactive demo launcher
+demo: demo-launcher
+
+# Run comprehensive demo (all capabilities)
+demo-comprehensive:
+	@echo "Running comprehensive demo..."
+	@./scripts/comprehensive-demo.sh
+
+# Run advanced features demo
+demo-advanced:
+	@echo "Running advanced features demo..."
+	@./scripts/advanced-demo.sh
+
+# Run performance testing demo
+demo-performance:
+	@echo "Running performance testing demo..."
+	@./scripts/performance-demo.sh
+
+# Launch interactive demo menu
+demo-launcher:
+	@echo "Launching interactive demo menu..."
+	@./scripts/demo-launcher.sh
+
+# Clean up all demo resources
+demo-cleanup:
+	@echo "Cleaning up demo resources..."
+	@./scripts/demo-launcher.sh cleanup
